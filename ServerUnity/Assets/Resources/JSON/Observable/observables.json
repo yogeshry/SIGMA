@@ -1,0 +1,136 @@
+[
+//   {
+//   "observableId": "coplanar",              
+//   "predicate": {                                  
+//     "name": "coplanar",                           
+//     "description": "TRUE when mobile is near desktop.",
+//     "logicalOp": "AND",
+//     "primitives": ["coLocalLevel", "parallelSurface"]                           
+//   },
+//   "publish": {                                    
+//     "payloadTemplate": {                          
+//       "isTrue": "predicate",
+//       "coLocalLevel": "primitives.coLocalLevel.metric"
+//     }
+//   }
+// },
+// {
+//   "observableId": "sideBySide",              
+//   "predicate": {                                  
+//     "name": "sideBySide",                           
+//     "description": "TRUE when mobile is near desktop.",
+//     "logicalOp": "AND",
+//     "primitives": ["coLocalLevel", "contactLateralEdge", "parallelSurface"]                           
+//   },
+//   "publish": {                                    
+//     "payloadTemplate": {                          
+//       "isTrue": "predicate",
+//       "coLocalLevel": "primitives.coLocalLevel.metric"
+//     }
+//   }
+// },
+// {
+//   "observableId": "longitudinalAlignment",              
+//   "predicate": {                                  
+//     "name": "longitudinalAlignment",                           
+//     "description": "TRUE when mobile is near desktop.",
+//     "logicalOp": "AND",
+//     "primitives": ["coLocalLevel", "contactLongitudinalEdge"]                           
+//   },
+//   "publish": {                                    
+//     "payloadTemplate": {                          
+//       "isTrue": "predicate",
+//       "coLocalLevel": "primitives.coLocalLevel.metric"
+//     }
+//   }
+// },
+// {
+//   "observableId": "LeftBottomLshape",              
+//   "predicate": {                                  
+//     "name": "LeftBottomLshape",                           
+//     "description": "TRUE when mobile is near desktop.",
+//     "logicalOp": "AND",
+//     "primitives": ["perpendicularEdge", "cornerContactTRtoBR", "parallelSurface"]                           
+//   },
+//   "publish": {                                    
+//     "payloadTemplate": {                          
+//       "isTrue": "predicate",
+//       "coLocalLevel": "primitives.perpendicularEdge.metric"
+//     }
+//   }
+// },
+// {
+//   "observableId": "proximityZone",              
+//   "predicate": {                                  
+//     "name": "proximityZone",                           
+//     "description": "TRUE when mobile is near desktop.",
+//     "logicalOp": "AND",
+//     "primitives": ["proximityZone"]                           
+//   },
+//   "publish": {                                    
+//     "payloadTemplate": {                          
+//       "isTrue": "predicate"
+//     }
+//   }
+// },
+// {
+//   "observableId": "pitch30",              
+//   "predicate": {                                  
+//     "name": "pitch30",                           
+//     "description": "TRUE when mobile is near desktop.",
+//     "logicalOp": "AND",
+//     "primitives": ["pitch30"]                           
+//   },
+//   "publish": {                                    
+//     "payloadTemplate": {                          
+//       "isTrue": "predicate",
+//       "coLocalLevel": "primitives.pitch30.metric"
+//     }
+//   }
+// },
+{
+  "observableId": "surfaceHoverProjection",              
+  "predicate": {                                  
+    "name": "surfaceHoverProjection",                           
+    "description": "TRUE when mobile is near desktop.",
+    "logicalOp": "AND",
+    "primitives": [ "downwardProjectedSurface"]                           
+  },
+  "publish": {                                    
+    "payloadTemplate": {                          
+      "isTrue": "predicate",
+      "coLocalLevel": "primitives.coLocalLevel.metric"
+    }
+  }
+},
+{
+  "observableId": "edgeParallelDisplacement",              
+  "predicate": {                                  
+    "name": "edgeParallelDisplacement",                           
+    "description": "TRUE when mobile is near desktop.",
+    "logicalOp": "AND",
+    "primitives": ["forwardPointerToBottomEdge", "coLocalLevel"]                           
+  },
+  "publish": {                                    
+    "payloadTemplate": {                          
+      "isTrue": "predicate",
+      "coLocalLevel": "primitives.forwardPointerToBottomEdge.metric"
+    }
+  }
+},
+{
+  "observableId": "displayPointer",              
+  "predicate": {                                  
+    "name": "displayPointer",                           
+    "description": "TRUE when mobile is near desktop.",
+    "logicalOp": "AND",
+    "primitives": ["forwardPointerToSurface"]                           
+  },
+  "publish": {                                    
+    "payloadTemplate": {                          
+      "isTrue": "predicate",
+      "coLocalLevel": "primitives.forwardPointerToBottomEdge.metric"
+    }
+  }
+}]
+

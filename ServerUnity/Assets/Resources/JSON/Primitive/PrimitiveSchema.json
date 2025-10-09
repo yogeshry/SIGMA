@@ -1,0 +1,167 @@
+[
+  {
+    "$schema": "[http://json-schema.org/draft-07/schema#](http://json-schema.org/draft-07/schema#)",
+    "title": "Distance Dyadic Relationship",
+    "description": "Formalized distance relationship between two spatial features of devices.",
+    "type": "object",
+    "required": [
+      "metric"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metric": {
+        "type": "string",
+        "const": "distance"
+      },
+      "axis": {
+        "type": "string",
+        "enum": [
+          "lateral",
+          "longitudinal",
+          "vertical"
+        ]
+      },
+      "refs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/featureRef"
+        },
+        "minItems": 2,
+        "maxItems": 2,
+        "default": [
+          "position",
+          "position"
+        ]
+      },
+      "condition": {
+        "$ref": "#/definitions/condition"
+      },
+      "unit": {
+        "type": "string",
+        "enum": [
+          "mm",
+          "cm",
+          "m",
+          "inch"
+        ],
+        "default": "cm"
+      }
+    }
+  },
+  {
+    "$schema": "[http://json-schema.org/draft-07/schema#](http://json-schema.org/draft-07/schema#)",
+    "title": "Angle Dyadic Relationship",
+    "description": "Formalized angle relationship between two spatial orientations of devices.",
+    "type": "object",
+    "required": [
+      "metric"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metric": {
+        "type": "string",
+        "const": "angle"
+      },
+      "refs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/featureRef"
+        },
+        "minItems": 2,
+        "maxItems": 2,
+        "default": [
+          "verticalAxis",
+          "verticalAxis"
+        ]
+      },
+      "condition": {
+        "$ref": "#/definitions/condition"
+      },
+      "unit": {
+        "type": "string",
+        "enum": [
+          "degree",
+          "rad"
+        ],
+        "default": "degree"
+      }
+    }
+  },
+  {
+    "$schema": "[http://json-schema.org/draft-07/schema#](http://json-schema.org/draft-07/schema#)",
+    "title": "Projection Dyadic Relationship",
+    "description": "Formalized projection relationship between two spatial features of devices.",
+    "type": "object",
+    "required": [
+      "metric"    ],
+    "additionalProperties": false,
+    "properties": {
+      "metric": {
+        "type": "string",
+        "const": "projection"
+      },
+      "axis": {
+        "type": "string",
+        "enum": [
+          "lateral",
+          "longitudinal",
+          "vertical"
+        ],
+        "default": "longitudinal"
+      },
+      "refs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/featureRef"
+        },
+        "minItems": 2,
+        "maxItems": 2,
+        "default": [
+          "position",
+          "boundingBox"
+        ]
+      }
+    }
+  },
+  {
+    "definitions": {
+      "featureRef": {
+        "type": "string",
+        "enum": [
+          "position",
+          "boundingBox",
+          "leftEdge",
+          "rightEdge",
+          "topEdge",
+          "bottomEdge",
+          "leftTopCorner",
+          "leftBottomCorner",
+          "rightTopCorner",
+          "rightBottomCorner",
+          "roll",
+          "pitch",  
+          "yaw",
+          "rightVector",
+          "leftVector",
+          "forwardVector",
+          "backwardVector",
+          "upVector",
+          "downVector"
+        ]
+      },
+      "condition": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": false,
+        "patternProperties": {
+          "^(eq|gt|lt|gte|lte)$": {
+            "type": "number"
+          },
+          "tolerance": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+]

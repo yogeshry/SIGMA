@@ -1,0 +1,13 @@
+[
+  {
+    "id": "coplanarSurface",
+    "description": "Two devices are on the same plane.",
+    "primitives": ["coLocalLevel", "parallelSurface"]
+  },  
+  {
+    "id": "horizontalSurface",
+    "description": "A device is on a horizontal surface.",
+    "primitives": ["pitch0", "roll0"]
+  }
+]
+

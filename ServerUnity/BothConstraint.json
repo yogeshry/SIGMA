@@ -1,0 +1,17 @@
+{
+  "deviceA": {
+    "constraint": {
+      "type": "mobile",
+      "width": { "gte": 500 },
+      "height": { "gte": 768 },
+      "ppi": { "lt": 500 }
+    }
+  },
+  "deviceB": {
+    "constraint": {
+      "type": "desktop",
+      "width": { "eq": 1920 },
+      "height": { "eq": 1200 }
+    }
+  }
+}

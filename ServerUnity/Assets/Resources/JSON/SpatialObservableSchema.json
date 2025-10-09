@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.org/schemas/spatial-observable-list.json",
+  "title": "Spatial Observable List",
+  "type": "array",
+  "items": { "$ref": "#/definitions/SpatialObservable" },
+  "definitions": {
+    "SpatialObservable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "entities", "on", "publish"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Globally-unique identifier.",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "entities": {
+          "type": "object",
+          "description": "Role → device selector mapping (e.g., A, B, or domain names like mobile/desktop).",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/definitions/DeviceResolver" }
+        },
+        "condition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "operator", "primitives"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Human-friendly name of the relation (e.g., 'coplanar')."
+            },
+            "operator": {
+              "type": "string",
+              "enum": ["AND", "OR", "NOT"],
+              "description": "Logical operator to combine primitive predicates."
+            },
+            "primitives": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "Named primitive ID (optionally prefixed with '!' or '~' to negate)."
+                  },
+                  { "type":"object" }
+                ]
+              }
+            }
+          }
+        },
+        "on": {
+          "type": "string",
+          "enum": ["enter", "exit", "change", "true", "false", "always"],
+          "description": "Trigger semantics: enter(rising edge), exit(falling), change(any toggle), or always."
+        },
+        "publish": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["payload"],
+          "properties": {
+            "channel": {
+              "type": "string",
+              "description": "Optional bus/topic name; default is runtime-specific."
+            },
+            "payload": {
+              "type": "object",
+              "description": "Arbitrary JSON payload. String fields may include runtime templates like {{now}}.",
+              "additionalProperties": { "$ref": "#/definitions/JsonValue" }
+            }
+          }
+        }
+      }
+    },
+    "JsonValue": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "null" },
+        { "type": "object", "additionalProperties": { "$ref": "#/definitions/JsonValue" } },
+        { "type": "array", "items": { "$ref": "#/definitions/JsonValue" } }
+      ]
+    }
+  }
+}

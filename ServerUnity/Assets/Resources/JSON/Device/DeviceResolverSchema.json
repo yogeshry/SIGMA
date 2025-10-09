@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Device Resolver Grammar",
+  "description": "Map each device variable to either a known ID or a block of display constraints.",
+  "type": "object",
+  "properties": {
+    "deviceA": { "$ref": "#/definitions/deviceRef" },
+    "deviceB": { "$ref": "#/definitions/deviceRef" }
+  },
+  "required": [ "deviceA" ],
+  "additionalProperties": false,
+
+  "definitions": {
+    "deviceRef": {
+      "title": "Device Reference",
+      "oneOf": [
+        {
+          "title": "By ID",
+          "type": "string",
+          "description": "A known device identifier",
+          "examples": [ "desktop-001", "mobile-42" ]
+        },
+        {
+          "title": "By Constraint",
+          "type": "object",
+          "required": [ "constraint" ],
+          "properties": {
+            "constraint": { "$ref": "#/definitions/constraint" }
+          },
+          "additionalProperties": false,
+          "examples": [
+            {
+              "constraint": {
+                "type": "Mobile",
+                "width": { "lt": 800 },
+                "ppi": { "gte": 300 }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    "constraint": {
+      "title": "Display Constraints",
+      "type": "object",
+      "description": "Properties to match devices dynamically",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [ "Desktop", "Mobile", "Immersive" ],
+          "description": "Form factor category"
+        },
+        "width": { "$ref": "#/definitions/comparator" },
+        "height": { "$ref": "#/definitions/comparator" },
+        "ppi": { "$ref": "#/definitions/comparator" }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "type": "Desktop",
+          "width": { "gte": 1024 },
+          "height": { "gte": 768 }
+        }
+      ]
+    },
+
+    "comparator": {
+      "title": "Numeric Comparator",
+      "type": "object",
+      "description": "Exactly one of: eq, lt, lte, gt, gte → numeric value",
+      "minProperties": 1,
+      "patternProperties": {
+        "^(eq|lt|lte|gt|gte)$": { "type": "number" }
+      },
+      "additionalProperties": false,
+      "examples": [
+        { "eq": 400 },
+        { "lt": 800 },
+        { "gte": 300 }
+      ]
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "deviceA": {
+    "constraint": {
+      "type": "Desktop",
+      "width": { "gte": 1024 },
+      "height": { "gte": 768 },
+      "ppi": { "lt": 200 }
+    }
+  },
+  "deviceB": {
+    "constraint": {
+      "type": "Immersive",
+      "width": { "eq": 1920 },
+      "height": { "eq": 1080 },
+      "ppi": { "gt": 300 }
+    }
+  }
+}

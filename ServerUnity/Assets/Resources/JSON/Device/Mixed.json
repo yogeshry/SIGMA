@@ -1,0 +1,11 @@
+{
+  "deviceA": "desktop-001",
+  "deviceB": {
+    "constraint": {
+      "type": "Mobile",
+      "width": { "lt": 800 },
+      "height": { "gt": 400 },
+      "ppi": { "gte": 300 }
+    }
+  }
+}
