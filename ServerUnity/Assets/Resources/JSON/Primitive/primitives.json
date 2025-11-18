@@ -35,6 +35,51 @@
     "unit": "cm"
   },
   {
+    "id": "touchTopEdge",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance",
+    "refs": ["topEdge", "topEdge"],
+    "condition": {
+      "eq": 0,
+      "tolerance": 1
+    },
+    "unit": "cm"
+  },
+  {
+    "id": "belowBottomEdge",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance:forwardB",
+    "refs": ["position", "bottomEdge"],
+    "condition": {
+      "gt": 3,
+      "lt": 10,
+      "tolerance": 3
+    },
+    "unit": "cm"
+  },  {
+    "id": "rightRightEdge",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance:leftB",
+    "refs": ["position", "rightEdge"],
+    "condition": {
+      "gt": 3,
+      "lt": 10,
+      "tolerance": 3
+    },
+    "unit": "cm"
+  },  {
+    "id": "leftLeftEdge",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance:rightB",
+    "refs": ["position", "leftEdge"],
+    "condition": {
+      "gt": 3,
+      "lt": 10,
+      "tolerance": 3
+    },
+    "unit": "cm"
+  },
+  {
     "id": "contactLateralEdge",
     "description": "Distance between right edge of device A and left edge of device B is zero",
     "metric": "distance",
@@ -96,7 +141,64 @@
     "refs": ["position", "position"],
 
     "condition": {
-      "lt": 20,
+      "lt": 35,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  },  
+  {
+    "id": "proximate30",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "position"],
+
+    "condition": {
+      "lt": 30,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  },  
+  {
+    "id": "proximateLeftEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "leftEdge"],
+
+    "condition": {
+      "lt": 10,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  },  {
+    "id": "proximateRightEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "rightEdge"],
+
+    "condition": {
+      "lt": 10,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  },  {
+    "id": "proximateTopEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "topEdge"],
+
+    "condition": {
+      "lt": 7,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  }, {
+    "id": "proximateBottomEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "bottomEdge"],
+
+    "condition": {
+      "lt": 10,
       "tolerance": 0
     },
     "unit": "cm"
@@ -107,8 +209,8 @@
     "metric": "distance:rightA",
     "refs": ["rightEdge", "leftEdge"],
     "condition": {
-      "gt": 10,
-      "lt": 20,
+      "gt": 0,
+      "lt": 10,
       "tolerance": 1
     },
     "unit": "cm"
@@ -167,6 +269,13 @@
       "eq": 30,
       "tolerance": 5
     },
+    "unit": "deg"
+  },  
+  {
+    "id": "lateralTilt",
+    "description": "the lateral vector of devices are at 30 degree angle",
+    "metric": "angle",
+    "refs": ["rightVector", "rightVector"],
     "unit": "deg"
   },
 
@@ -293,9 +402,27 @@
     "metric": "projection:forwardA",
     "refs": ["position", "bottomEdge"]
 
+  },  {
+    "id": "forwardPointerToRightEdge",
+    "description": "the forward vector of device A is pointing to the bottom edge of device B",
+    "metric": "projection:leftA",
+    "refs": ["position", "rightEdge"]
+
+  },{
+    "id": "forwardPointerToLeftEdge",
+    "description": "the forward vector of device A is pointing to the bottom edge of device B",
+    "metric": "projection:rightA",
+    "refs": ["position", "leftEdge"]
+
+  },{
+    "id": "forwardPointerToTopEdge",
+    "description": "the forward vector of device A is pointing to the bottom edge of device B",
+    "metric": "projection:forwardA",
+    "refs": ["position", "topEdge"]
+
   },
   {
-    "id": "forwardPointer",
+    "id": "forwardPointerToSurface",
     "description": "the forward vector of device A is pointing to the display surface of device B",
     "metric": "projection:forwardA",
     "refs": ["position", "surface"],
@@ -354,13 +481,25 @@
     "unit": "cm/s"
   },
   {
-    "id": "shake",
+    "id": "positional_shake",
     "description": "the acceleration of device is greater than threshold",
-    "metric": "acceleration",
+    "metric": "acceleration_rms",
     "condition": {
-      "gt": 4,
-      "tolerance": 0.1
+      "gt": 300
     },
-    "unit": "cm/s²"
+    "params":{"halfLifeSec":1},
+    "unit": "cm/s^2"
+  },
+  {
+    "id": "angular_shake",
+    "description": "the acceleration of device is greater than threshold",
+    "metric": "angular_velocity_rms",
+    "condition": {
+      "gt": 60
+    },
+    "params":{"halfLifeSec":1},
+    "unit": "deg/s"
   }
 ]
+
+ 

@@ -72,6 +72,11 @@ public static class UnitConverter
             case "cm/s": return value * 100f;
             case "mm/s": return value * 1000f;
             case "inch/s": return value / 0.0254f;
+            // --- acceleration ?  ---
+            case "m/s^2": return value;
+            case "cm/s^2": return value * 100f;
+            case "mm/s^2": return value * 1000f;
+            case "inch/s^2": return value / 0.0254f;
 
 
             default:

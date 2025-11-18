@@ -1,10 +1,12 @@
-// ————————————————————————
+ï»¿// â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
 // 1) Your grammar types
-// ————————————————————————
+// â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
 using System.Collections.Generic;
 using System;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
+using static DeviceSpatialProvider;
+using Newtonsoft.Json;
 
 public class RuleSpec
 {
@@ -25,15 +27,25 @@ public class ConditionSpec
 public class PublicationSpec
 {
     public string[] streams;
+    public object mapping;
 }
-// ————————————————————————
+
+
+// â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
 // 2) Primitive payload
-// ————————————————————————
+// â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
 public class PrimitivePayload
 {
     public string Id;    // e.g. "coLocalLevel"
     public object Value;  // your measured metric
     public Boolean IsValid; // true if the condition is met, false otherwise
+}
+
+[Serializable]
+public class PrimitiveParams
+{
+    // EMA time constant in seconds for *_rms metrics (frequency cutoff â‰ˆ 1/(2Ï€Â·tauSec)).
+    public float? halfLifeSec;
 }
 
 
@@ -46,6 +58,9 @@ public class PrimitiveSpec
     public List<string> refs;      // e.g. ["position","position"]
     public ComparatorSpec condition;
     public string unit;            // optional
+                                   // JSON key is "params"; @params avoids C# 'params' contextual keyword.
+    [JsonProperty("params")]
+    public PrimitiveParams @params;  // optional
 }
 [Serializable]
 public class InlinePrimitiveSpec
@@ -54,6 +69,9 @@ public class InlinePrimitiveSpec
     public string description;    // optional
     public ComparatorSpec condition;
     public string unit;            // optional
+                                   // JSON key is "params"; @params avoids C# 'params' contextual keyword.
+    [JsonProperty("params")]
+    public PrimitiveParams @params;  // optional
 }
 
 [Serializable]
@@ -75,6 +93,31 @@ public enum GeometryType
     Polygon,
     Rotation,
     EulerAngles
+}
+
+public class DisplaySpatialData
+{
+    public int widthPixels;
+    public int heightPixels;
+    public Corners corners;
+
+    public DisplaySpatialData(int widthPixels, int heightPixels, Corners corners)
+    {
+        this.widthPixels = widthPixels;
+        this.heightPixels = heightPixels;
+        this.corners = corners;
+    }
+}
+public class DisplayPairSpatialData
+{
+    public DisplaySpatialData displayA;
+    public DisplaySpatialData displayB;
+
+    public DisplayPairSpatialData(DisplaySpatialData displayA, DisplaySpatialData displayB)
+    {
+        this.displayA = displayA;
+        this.displayB = displayB;
+    }
 }
 
 
@@ -115,8 +158,11 @@ internal static class ProjectionMath
 public sealed class PolygonPolygonProjection : IProjectionResult
 {
     public Vector3[] PolygonA { get; }
+    public Vector2[] PolygonAPixel { get; }
     public Vector3[] PolygonB { get; }
+    public Vector2[] PolygonBPixel { get; }
     public Vector3[] ProjectedPolygon { get; }
+    public Vector2[] ProjectedPolygonPixel { get; }
     public float AreaA { get; }
     public float ProjectedArea { get; }
     public float Ratio { get; }
@@ -124,11 +170,20 @@ public sealed class PolygonPolygonProjection : IProjectionResult
 
     private PolygonPolygonProjection(
         Vector3[] polygonA, Vector3[] polygonB, Vector3[] projectedPolygon,
-        float areaA, float projectedArea, float ratio, Vector3 axis)
+        float areaA, float projectedArea, float ratio, Vector3 axis, DisplayPairSpatialData displays )
     {
         PolygonA = polygonA ?? Array.Empty<Vector3>();
+        PolygonAPixel = CoordinateMapping.WorldToPixelFromCornersList(
+                    polygonA, displays.displayA.widthPixels, displays.displayA.heightPixels,
+                            displays.displayA.corners.TopLeft, displays.displayA.corners.TopRight, displays.displayA.corners.BottomLeft, displays.displayA.corners.BottomRight, true) ?? Array.Empty<Vector2>();
         PolygonB = polygonB ?? Array.Empty<Vector3>();
+        PolygonBPixel = CoordinateMapping.WorldToPixelFromCornersList(
+                    polygonB, displays.displayB.widthPixels, displays.displayB.heightPixels,
+                            displays.displayB.corners.TopLeft, displays.displayB.corners.TopRight, displays.displayB.corners.BottomLeft, displays.displayB.corners.BottomRight, true) ?? Array.Empty<Vector2>();
         ProjectedPolygon = projectedPolygon ?? Array.Empty<Vector3>();
+        ProjectedPolygonPixel = CoordinateMapping.WorldToPixelFromCornersList(
+                    projectedPolygon, displays.displayB.widthPixels, displays.displayB.heightPixels,
+                            displays.displayB.corners.TopLeft, displays.displayB.corners.TopRight, displays.displayB.corners.BottomLeft, displays.displayB.corners.BottomRight, true) ?? Array.Empty<Vector2>();
         AreaA = areaA;
         ProjectedArea = projectedArea;
         Ratio = ProjectionMath.Clamp01(ratio);
@@ -136,10 +191,10 @@ public sealed class PolygonPolygonProjection : IProjectionResult
     }
 
     public static PolygonPolygonProjection Create(
-        Vector3[] polygonA, Vector3[] polygonB, Vector3[] projectedPolygon,float areaA, float projA, Vector3 axis)
+        Vector3[] polygonA, Vector3[] polygonB, Vector3[] projectedPolygon,float areaA, float projA, Vector3 axis, DisplayPairSpatialData displays)
     {
         var ratio = areaA > ProjectionMath.Eps ? projA / areaA : 0f;
-        return new PolygonPolygonProjection(polygonA, polygonB, projectedPolygon, areaA, projA, ratio, axis);
+        return new PolygonPolygonProjection(polygonA, polygonB, projectedPolygon, areaA, projA, ratio, axis, displays);
     }
 }
 
@@ -218,18 +273,30 @@ public sealed class SegmentSegmentProjection : IProjectionResult
 public sealed class PointPolygonProjection : IProjectionResult
 {
     public Vector3 Point { get; }
+    public Vector2 PointPixel { get; }
     public Vector3 ProjectedPoint { get; }
+    public Vector2 ProjectedPointPixel { get; }
     public Vector3 Axis { get; }
     public Vector3[] Polygon { get; }
+    public Vector2[] PolygonPixel { get; }
     /// <summary>For a single point hit, treat as a full hit (1.0) by convention.</summary>
     public float Ratio => 1f;
 
-    public PointPolygonProjection(Vector3 point, Vector3 projectedPoint, Vector3 axis, Vector3[] polygon)
+    public PointPolygonProjection(Vector3 point, Vector3 projectedPoint, Vector3 axis, Vector3[] polygon, DisplayPairSpatialData displays)
     {
         Point = point;
+        PointPixel = CoordinateMapping.WorldToPixelFromCorners(
+                    point, displays.displayA.widthPixels, displays.displayA.heightPixels,
+                            displays.displayA.corners.TopLeft, displays.displayA.corners.TopRight, displays.displayA.corners.BottomLeft, displays.displayA.corners.BottomRight, true);
         ProjectedPoint = projectedPoint;
+        ProjectedPointPixel = CoordinateMapping.WorldToPixelFromCorners(
+                    projectedPoint, displays.displayB.widthPixels, displays.displayB.heightPixels,
+                            displays.displayB.corners.TopLeft, displays.displayB.corners.TopRight, displays.displayB.corners.BottomLeft, displays.displayB.corners.BottomRight, true);
         Axis = axis;
         Polygon = polygon ?? Array.Empty<Vector3>();
+        PolygonPixel = CoordinateMapping.WorldToPixelFromCornersList(
+                    polygon, displays.displayB.widthPixels, displays.displayB.heightPixels,
+                            displays.displayB.corners.TopLeft, displays.displayB.corners.TopRight, displays.displayB.corners.BottomLeft, displays.displayB.corners.BottomRight, true) ?? Array.Empty<Vector2>();
     }
 }
 
@@ -237,17 +304,34 @@ public sealed class PointPolygonProjection : IProjectionResult
 public sealed class PointSegmentProjection : IProjectionResult
 {
     public Vector3 Point { get; }
+    public Vector2 PointPixel { get; }
     public Vector3 ProjectedPoint { get; }
+    public Vector2 ProjectedPointPixel { get; }
     public (Vector3 A, Vector3 B) Segment { get; }
+    public (Vector2 A, Vector2 B) SegmentPixel { get; }
     public Vector3 Axis { get; }
     /// <summary>For a single point hit, treat as a full hit (1.0) by convention.</summary>
     public float Ratio => 1f;
 
-    public PointSegmentProjection(Vector3 point, Vector3 projectedPoint, (Vector3 A, Vector3 B) segment, Vector3 axis)
+    public PointSegmentProjection(Vector3 point, Vector3 projectedPoint, (Vector3 A, Vector3 B) segment, Vector3 axis, DisplayPairSpatialData displays)
     {
         Point = point;
+        PointPixel = CoordinateMapping.WorldToPixelFromCorners(
+                    point, displays.displayA.widthPixels, displays.displayA.heightPixels,
+                            displays.displayA.corners.TopLeft, displays.displayA.corners.TopRight, displays.displayA.corners.BottomLeft, displays.displayA.corners.BottomRight, true);
         ProjectedPoint = projectedPoint;
+        ProjectedPointPixel = CoordinateMapping.WorldToPixelFromCorners(
+                    projectedPoint, displays.displayB.widthPixels, displays.displayB.heightPixels,
+                            displays.displayB.corners.TopLeft, displays.displayB.corners.TopRight, displays.displayB.corners.BottomLeft, displays.displayB.corners.BottomRight, true);
         Segment = segment;
+        SegmentPixel = (
+            CoordinateMapping.WorldToPixelFromCorners(
+                    segment.A, displays.displayB.widthPixels, displays.displayB.heightPixels,
+                            displays.displayB.corners.TopLeft, displays.displayB.corners.TopRight, displays.displayB.corners.BottomLeft, displays.displayB.corners.BottomRight, true),
+            CoordinateMapping.WorldToPixelFromCorners(
+                    segment.B, displays.displayB.widthPixels, displays.displayB.heightPixels,
+                            displays.displayB.corners.TopLeft, displays.displayB.corners.TopRight, displays.displayB.corners.BottomLeft, displays.displayB.corners.BottomRight, true)
+            );
         Axis = axis;
     }
 

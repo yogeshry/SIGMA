@@ -75,7 +75,7 @@ public class PrimitiveFactory
         new Dictionary<PrimitiveKey, int>();
 
     // ---------- Parsing helpers ----------
-    private enum MetricKind { Distance, Angle, Velocity, Acceleration, Projection }
+    private enum MetricKind { Distance, Angle, Velocity, Acceleration, Projection, AccelerationRms, AngularVelocityRms }
 
     private readonly Dictionary<string, MetricKind> _metricMap =
         new Dictionary<string, MetricKind>(StringComparer.OrdinalIgnoreCase)
@@ -84,7 +84,9 @@ public class PrimitiveFactory
             ["angle"] = MetricKind.Angle,
             ["velocity"] = MetricKind.Velocity,
             ["acceleration"] = MetricKind.Acceleration,
-            ["projection"] = MetricKind.Projection
+            ["projection"] = MetricKind.Projection,
+            ["acceleration_rms"] = MetricKind.AccelerationRms,
+            ["angular_velocity_rms"] = MetricKind.AngularVelocityRms
         };
 
     private enum AxisBase { Up, Forward, Right, MajorDiag, MinorDiag, X, Y, Z }
@@ -227,6 +229,9 @@ public class PrimitiveFactory
                 MetricKind.Velocity => VelocityBuilder(ctx).Select(x => (object)x),
                 MetricKind.Acceleration => AccelerationBuilder(ctx).Select(x => (object)x),
                 MetricKind.Projection => ProjectionBuilder(ctx).Select(x => (object)x),
+                // NEW:
+                MetricKind.AccelerationRms => AccelerationRmsBuilder(ctx).Select(x => (object)x),
+                MetricKind.AngularVelocityRms => AngularVelocityRmsBuilder(ctx).Select(x => (object)x),
                 _ => throw new NotSupportedException($"Unsupported metric '{spec.metric}'")
             };
 
@@ -336,7 +341,11 @@ public class PrimitiveFactory
                 SurfaceProjection.ProjectAndIntersect(polyA, polyB, out intersection, out areaA, out projArea);
 
                 if (projArea <= 1e-6f) return null;
-                return PolygonPolygonProjection.Create(polyA, polyB, intersection ?? Array.Empty<Vector3>(), areaA, projArea, ax);
+                DisplaySpatialData displayA = new DisplaySpatialData(ctx.A.displaySize.widthPixels, ctx.A.displaySize.heightPixels,new DeviceSpatialProvider.Corners(a.tr, a.tl, a.br, a.bl));
+                DisplaySpatialData displayB = new DisplaySpatialData(ctx.B.displaySize.widthPixels, ctx.B.displaySize.heightPixels, new DeviceSpatialProvider.Corners(b.tr, b.tl, b.br, b.bl));
+                DisplayPairSpatialData displayPairSpatialData = new DisplayPairSpatialData(displayA, displayB);
+                
+                return PolygonPolygonProjection.Create(polyA, polyB, intersection ?? Array.Empty<Vector3>(), areaA, projArea, ax, displayPairSpatialData);
             }).Publish().RefCount();
         }
 
@@ -371,13 +380,17 @@ public class PrimitiveFactory
         if (typeA == GeometryType.Point && typeB == GeometryType.Polygon)
         {
             var pt = RefStreamProvider.GetStream<Vector3>(ctx.A, ctx.Spec.refs[0]);
+            var cA = RefStreamProvider.CornersStream(ctx.A);
             var cB = RefStreamProvider.CornersStream(ctx.B);
-            return pt.CombineLatest(cB, axis, (p, b, ax) =>
+            return pt.CombineLatest(cA, cB, axis, (p, a, b, ax) =>
             {
                 var polyB = new[] { b.tr, b.tl, b.bl, b.br };
                 var proj = SurfaceProjection.ProjectPointAlongAxisOntoPolygonSurface(p, polyB, ax);
                 if (!proj.HasValue) return null;
-                return new PointPolygonProjection(p, proj.Value, ax, polyB);
+                DisplaySpatialData displayA = new DisplaySpatialData(ctx.A.displaySize.widthPixels, ctx.A.displaySize.heightPixels, new DeviceSpatialProvider.Corners(a.tr, a.tl, a.br, a.bl));
+                DisplaySpatialData displayB = new DisplaySpatialData(ctx.B.displaySize.widthPixels, ctx.B.displaySize.heightPixels, new DeviceSpatialProvider.Corners(b.tr, b.tl, b.br, b.bl));
+                DisplayPairSpatialData displayPairSpatialData = new DisplayPairSpatialData(displayA, displayB);
+                return new PointPolygonProjection(p, proj.Value, ax, polyB, displayPairSpatialData);
             }).Publish().RefCount();
         }
 
@@ -386,11 +399,18 @@ public class PrimitiveFactory
         {
             var pt = RefStreamProvider.GetStream<Vector3>(ctx.A, ctx.Spec.refs[0]);
             var seg = RefStreamProvider.GetStream<(Vector3, Vector3)>(ctx.B, ctx.Spec.refs[1]);
-            return pt.CombineLatest(seg, axis, (p, s, ax) =>
+            var cA = RefStreamProvider.CornersStream(ctx.A);
+            var cB = RefStreamProvider.CornersStream(ctx.B);
+
+            return pt.CombineLatest(seg, axis, cA, cB, (p, s, ax, a, b) =>
             {
                 var q = SurfaceProjection.ProjectPointOntoSegment(p, s);
                 if (!q.HasValue) return null;
-                return new PointSegmentProjection(p, q.Value, s, ax);
+
+                DisplaySpatialData displayA = new DisplaySpatialData(ctx.A.displaySize.widthPixels, ctx.A.displaySize.heightPixels, new DeviceSpatialProvider.Corners(a.tr, a.tl, a.br, a.bl));
+                DisplaySpatialData displayB = new DisplaySpatialData(ctx.B.displaySize.widthPixels, ctx.B.displaySize.heightPixels, new DeviceSpatialProvider.Corners(b.tr, b.tl, b.br, b.bl));
+                DisplayPairSpatialData displayPairSpatialData = new DisplayPairSpatialData(displayA, displayB);
+                return new PointSegmentProjection(p, q.Value, s, ax, displayPairSpatialData);
             }).Publish().RefCount();
         }
 
@@ -465,6 +485,54 @@ public class PrimitiveFactory
 
         var axis = AxisStream(ctx).Select(SafeNorm).Publish().RefCount();
         return a.CombineLatest(axis, (acc, ax) => Vector3.Dot(acc, ax)).Publish().RefCount();
+    }
+
+
+    // === RMS helpers (EMA of squared value) ===
+    private static IObservable<float> EmaRms(IObservable<float> x, float halfLife = 0.17f, float minDt = 1e-4f, float eps = 1e-3f)
+    {
+        float tauSec = (halfLife > 0f) ? (halfLife / Mathf.Log(2f)) : 0.25f;
+        return x.Select(v => (t: Time.time, v2: v * v))
+                .Scan((has: false, lastT: 0f, s2: 0f, rms: 0f), (s, cur) =>
+                {
+                    if (!s.has) return (true, cur.t, cur.v2, Mathf.Sqrt(cur.v2));
+                    float dt = Mathf.Max(cur.t - s.lastT, minDt);
+                    float tau = Mathf.Max(1e-4f, tauSec);
+                    float a = 1f - Mathf.Exp(-dt / tau);           // time-constant EMA
+                    float s2 = (1f - a) * s.s2 + a * cur.v2;
+                    return (true, cur.t, s2, Mathf.Sqrt(s2));
+                })
+                .Select(s => s.rms)
+                .Scan(float.PositiveInfinity, (prev, curr) => Mathf.Abs(curr - prev) > eps ? curr : prev)
+                .DistinctUntilChanged();
+    }
+
+    // --- Acceleration RMS (default: norm; with axis: component RMS) ---
+    private static IObservable<float> AccelerationRmsBuilder(BuildCtx ctx)
+    {
+        var aVec = RefStreamProvider.AccelerationStream(ctx.A).Publish().RefCount();
+
+        // If no axis → use prebuilt norm-RMS for efficiency
+        if (!ctx.HasAxis)
+            return RefStreamProvider.AccelerationRmsStream(ctx.A);
+
+        // With axis → RMS of projected component
+        var axis = AxisStream(ctx).Select(SafeNorm).Publish().RefCount();
+        var comp = aVec.CombineLatest(axis, (a, ax) => Vector3.Dot(a, ax));
+        return EmaRms(comp, (float)(ctx.Spec.@params?.halfLifeSec), 1e-4f, 1e-3f).Publish().RefCount();
+    }
+
+    // --- Angular Velocity RMS (default: norm; with axis: component RMS) ---
+    private static IObservable<float> AngularVelocityRmsBuilder(BuildCtx ctx)
+    {
+        var wVec = RefStreamProvider.AngularVelocityStream(ctx.A).Publish().RefCount();
+
+        if (!ctx.HasAxis)
+            return RefStreamProvider.AngularVelocityRmsStream(ctx.A);
+
+        var axis = AxisStream(ctx).Select(SafeNorm).Publish().RefCount();
+        var comp = wVec.CombineLatest(axis, (w, ax) => Vector3.Dot(w, ax)); // deg/s along axis
+        return EmaRms(comp, (float)(ctx.Spec.@params?.halfLifeSec), 1e-4f, 0.1f).Publish().RefCount();
     }
 
     // ------------------------------ Geometry / Axis helpers ------------------------------
@@ -665,8 +733,7 @@ public class PrimitiveFactory
     private bool Evaluate(ComparatorSpec c, float x, bool isProjection)
     {
         if (c == null) return isProjection ? x > 0 : true;
-
-        float tol = (float)c.tolerance;
+        float tol = c?.tolerance != null ? (float)c.tolerance:0f;
         bool ok = true;
         if (c.lt is { } lt) ok &= x <= lt + tol;
         if (c.gt is { } gt) ok &= x >= gt - tol;

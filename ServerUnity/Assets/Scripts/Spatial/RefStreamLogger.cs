@@ -65,8 +65,7 @@ public class RefStreamLogger : MonoBehaviour
         // Optional: log the computed physical size once  
         try
         {
-            Vector2 size = device.physicalSize;
-            Debug.Log($"[RefStreamLogger] Device.physicalSize = {size.x:F3}m × {size.y:F3}m");
+            Debug.Log($"[RefStreamLogger] Device.physicalSize = {device.displaySize.WidthInMeters:F3}m × {device.displaySize.HeightInMeters:F3}m");
         }
         catch (Exception e)
         {

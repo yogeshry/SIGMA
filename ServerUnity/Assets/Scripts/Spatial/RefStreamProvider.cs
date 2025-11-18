@@ -31,31 +31,55 @@ public static class RefStreamProvider
         public readonly IObservable<Vector3> Euler;
         public readonly IObservable<Vector3> Velocity;
         public readonly IObservable<Vector3> Acceleration;
+        public readonly IObservable<Vector3> AngularVelocity;   // deg/s (vector)
+        public readonly IObservable<float> AccelerationRms;    // m/s^2 (norm RMS)
+        public readonly IObservable<float> AngularVelocityRms; // deg/s (norm RMS)
 
-        public DeviceStreams(Device d,
-                             float posEps = 0.005f,   // 5 mm
-                             float rotEpsDeg = 2f,    // 2°
-                             float eulerEpsDeg = 2f,  // 2°
-                             float velMinDt = 1e-4f,
-                             float velAlpha = 0f,
-                             float velEps = 1e-3f,
-                             float accMinDt = 1e-4f,
-                             float accAlpha = 0f,
-                             float accEps = 1e-3f)
+        public DeviceStreams(
+     Device d,
+     // Epsilon parameters
+     float posEps = 0.006f,           // 5 mm
+     float cornerGateEps2 = 0.000036f,
+     float axisEps2 = 0.000036f,
+     float axesGateEps2 = 0.000036f,
+     float rotEpsDeg = 3f,            // 2°
+     float eulerEpsDeg = 3f,          // 2°
+                                      // Velocity/Acceleration parameters
+     float velMinDt = 1e-4f,
+     float velAlpha = 0f,
+     float velEps = 1e-3f,
+     float accMinDt = 1e-4f,
+     float accAlpha = 0f,
+     float accEps = 1e-3f,
+
+    // NEW: angular velocity & RMS params
+    float angVelMinDt = 1e-4f,
+    float angVelEpsDegPerSec = 0.5f, // gate tiny changes
+    float accRmsTauSec = 0.25f,
+    float angRmsTauSec = 0.25f,
+    float accRmsEps = 1e-3f,
+    float angRmsEps = 0.1f,
+
+     // Throttle parameters (NEW)
+     int throttleFrames = 0,          // 0 = no throttle, e.g., 2 = sample every 2 frames
+     float throttleSeconds = 0.1f)      // 0 = no throttle, e.g., 0.016f = ~60Hz
         {
             Device = d ?? throw new ArgumentNullException(nameof(d));
-            T = d.transform;
+            T = d.getTransform();
             if (T == null) throw new ArgumentException("Device has null transform", nameof(d));
+
+            // Base update stream with optional throttling
+            IObservable<long> baseStream = CreateBaseStream(throttleFrames, throttleSeconds);
 
             // --- Pose (position + rotation) with numeric gating (no acos) ---
             float posEps2 = posEps * posEps;
             float cosHalfEps = Mathf.Cos(0.5f * rotEpsDeg * Mathf.Deg2Rad);
 
-            Pose = Observable.EveryUpdate()
+            Pose = baseStream
                 .Select(_ => (T.position, T.rotation))
                 .Scan(
-                    (hasPrev: false, lp: Vector3.zero, lr: Quaternion.identity,
-                     emit: false, curr: (pos: Vector3.zero, rot: Quaternion.identity)),
+                    (hasPrev: false, lp: Vector3.zero, lr: Quaternion.identity, emit: false,
+                     curr: (pos: Vector3.zero, rot: Quaternion.identity)),
                     (acc, curr) =>
                     {
                         if (!acc.hasPrev)
@@ -64,9 +88,8 @@ public static class RefStreamProvider
                         bool posChanged = (curr.position - acc.lp).sqrMagnitude > posEps2;
                         float dot = Mathf.Abs(Quaternion.Dot(curr.rotation, acc.lr));
                         bool rotChanged = dot < cosHalfEps;
-
                         bool emit = posChanged || rotChanged;
-                        // Update last values when emitting, keep previous when not (for stable gating)
+
                         var lp = emit ? curr.position : acc.lp;
                         var lr = emit ? curr.rotation : acc.lr;
                         return (true, lp, lr, emit, (curr.position, curr.rotation));
@@ -77,17 +100,13 @@ public static class RefStreamProvider
                 .RefCount();
 
             // --- Axes/diagonals (one pass, gated) ---
-            const float axisEps2 = 1e-8f;  // for diagonal normalization
-            const float axesGateEps2 = 1e-8f;
-
-            Axes = Observable.EveryUpdate()
+            Axes = baseStream
                 .Select(_ =>
                 {
-                    var up = T.up;           // already normalized by Unity
+                    var up = T.up;
                     var fwd = T.forward;
                     var right = T.right;
 
-                    // Diagonals in device plane (right–forward plane)
                     var d1 = fwd - right;
                     var d2 = fwd + right;
                     d1 = d1.sqrMagnitude > axisEps2 ? d1.normalized : Vector3.zero;
@@ -95,31 +114,32 @@ public static class RefStreamProvider
 
                     return (up, fwd, right, d1, d2);
                 })
-                .Scan(((Vector3, Vector3, Vector3, Vector3, Vector3))default, (prev, curr) =>
-                    NearlyEqualAxes(prev, curr, axesGateEps2) ? prev : curr)
+                .Scan(
+                    ((Vector3, Vector3, Vector3, Vector3, Vector3))default,
+                    (prev, curr) => NearlyEqualAxes(prev, curr, axesGateEps2) ? prev : curr)
                 .DistinctUntilChanged()
                 .Publish()
                 .RefCount();
 
             // --- Corners: cache local geometry, transform each frame, gate ---
-            var size = d.physicalSize;
-            if (size.x > 0f && size.y > 0f)
+            var size = d.displaySize;
+            if (size.WidthInMeters > 0f && size.HeightInMeters > 0f)
             {
-                float hw = size.x * 0.5f, hh = size.y * 0.5f;
+                float hw = size.WidthInMeters * 0.5f, hh = size.HeightInMeters * 0.5f;
                 var L_tr = new Vector3(hw, 0f, hh);
                 var L_tl = new Vector3(-hw, 0f, hh);
                 var L_br = new Vector3(hw, 0f, -hh);
                 var L_bl = new Vector3(-hw, 0f, -hh);
-                const float cornerGateEps2 = 1e-6f;
 
-                Corners = Observable.EveryUpdate()
+                Corners = baseStream
                     .Select(_ => (
                         tr: T.TransformPoint(L_tr),
                         tl: T.TransformPoint(L_tl),
                         br: T.TransformPoint(L_br),
                         bl: T.TransformPoint(L_bl)))
-                    .Scan(((Vector3, Vector3, Vector3, Vector3))default, (prev, curr) =>
-                        NearlyEqualCorners(prev, curr, cornerGateEps2) ? prev : curr)
+                    .Scan(
+                        ((Vector3, Vector3, Vector3, Vector3))default,
+                        (prev, curr) => NearlyEqualCorners(prev, curr, cornerGateEps2) ? prev : curr)
                     .DistinctUntilChanged()
                     .Publish()
                     .RefCount();
@@ -127,60 +147,165 @@ public static class RefStreamProvider
             else
             {
                 Corners = Observable.Never<(Vector3, Vector3, Vector3, Vector3)>()
-                          .Publish().RefCount();
-                Debug.LogWarning($"[RefStreamProvider] Corners disabled due to invalid physicalSize for device {d.deviceId}.");
+                    .Publish().RefCount();
+                Debug.LogWarning($"[DeviceStreams] Corners disabled due to invalid physicalSize for device {d.deviceId}.");
             }
 
-            // --- Euler angles (avoid if not needed; here we gate by ~2 degrees) ---
+            // --- Euler angles (gate by ~2 degrees) ---
             float eulerGateEps2 = eulerEpsDeg * eulerEpsDeg;
-            Euler = Observable.EveryUpdate()
+
+            Euler = baseStream
                 .Select(_ => T.eulerAngles)
-                .Scan(Vector3.positiveInfinity, (prev, curr) =>
-                    (curr - prev).sqrMagnitude > eulerGateEps2 ? curr : prev)
+                .Scan(
+                    Vector3.positiveInfinity,
+                    (prev, curr) => (curr - prev).sqrMagnitude > eulerGateEps2 ? curr : prev)
                 .DistinctUntilChanged()
                 .Publish()
                 .RefCount();
 
             // --- Velocity from Pose ---
             float velEps2 = velEps * velEps;
+
             Velocity = Pose
                 .Select(p => p.pos)
-                .Scan((has: false, prev: Vector3.zero, t: 0f, v: Vector3.zero),
-                      (s, curr) =>
-                      {
-                          float now = Time.time;
-                          if (!s.has) return (true, curr, now, Vector3.zero);
-                          float dt = Mathf.Max(now - s.t, velMinDt);
-                          var inst = (curr - s.prev) / dt;
-                          var v = velAlpha > 0f ? Vector3.Lerp(s.v, inst, velAlpha) : inst;
-                          return (true, curr, now, v);
-                      })
+                .Scan(
+                    (has: false, prev: Vector3.zero, t: 0f, v: Vector3.zero),
+                    (s, curr) =>
+                    {
+                        float now = Time.time;
+                        if (!s.has) return (true, curr, now, Vector3.zero);
+
+                        float dt = Mathf.Max(now - s.t, velMinDt);
+                        var inst = (curr - s.prev) / dt;
+                        var v = velAlpha > 0f ? Vector3.Lerp(s.v, inst, velAlpha) : inst;
+                        return (true, curr, now, v);
+                    })
                 .Select(s => s.v)
-                .Scan(Vector3.positiveInfinity, (prev, curr) =>
-                    (curr - prev).sqrMagnitude > velEps2 ? curr : prev)
+                .Scan(
+                    Vector3.positiveInfinity,
+                    (prev, curr) => (curr - prev).sqrMagnitude > velEps2 ? curr : prev)
                 .DistinctUntilChanged()
                 .Publish()
                 .RefCount();
 
             // --- Acceleration from Velocity ---
             float accEps2 = accEps * accEps;
+
             Acceleration = Velocity
-                .Scan((has: false, prev: Vector3.zero, t: 0f, a: Vector3.zero),
-                      (s, v) =>
-                      {
-                          float now = Time.time;
-                          if (!s.has) return (true, v, now, Vector3.zero);
-                          float dt = Mathf.Max(now - s.t, accMinDt);
-                          var instA = (v - s.prev) / dt;
-                          var a = accAlpha > 0f ? Vector3.Lerp(s.a, instA, accAlpha) : instA;
-                          return (true, v, now, a);
-                      })
+                .Scan(
+                    (has: false, prev: Vector3.zero, t: 0f, a: Vector3.zero),
+                    (s, v) =>
+                    {
+                        float now = Time.time;
+                        if (!s.has) return (true, v, now, Vector3.zero);
+
+                        float dt = Mathf.Max(now - s.t, accMinDt);
+                        var instA = (v - s.prev) / dt;
+                        var a = accAlpha > 0f ? Vector3.Lerp(s.a, instA, accAlpha) : instA;
+                        return (true, v, now, a);
+                    })
                 .Select(s => s.a)
-                .Scan(Vector3.positiveInfinity, (prev, curr) =>
-                    (curr - prev).sqrMagnitude > accEps2 ? curr : prev)
+                .Scan(
+                    Vector3.positiveInfinity,
+                    (prev, curr) => (curr - prev).sqrMagnitude > accEps2 ? curr : prev)
                 .DistinctUntilChanged()
                 .Publish()
                 .RefCount();
+
+
+            // ---------------- Angular Velocity (deg/s) ----------------
+            // Computed from quaternion delta each (throttled) update.
+            AngularVelocity = baseStream
+                .Select(_ => (rot: T.rotation, t: Time.time))
+                .Scan(
+                    (has: false, prevRot: Quaternion.identity, t: 0f, omega: Vector3.zero),
+                    (s, curr) =>
+                    {
+                        if (!s.has) return (true, curr.rot, curr.t, Vector3.zero);
+
+                        float dt = Mathf.Max(curr.t - s.t, angVelMinDt);
+                        // qDelta rotates from prev -> curr
+                        var qDelta = curr.rot * Quaternion.Inverse(s.prevRot);
+                        qDelta.ToAngleAxis(out float angleDeg, out Vector3 axis);
+                        // Unity may hand back NaN axis for tiny rotations
+                        if (!float.IsFinite(axis.x)) axis = Vector3.zero;
+
+                        // angle is in [0, 180]; direction encoded in axis sign
+                        float speedDegPerSec = angleDeg / dt;
+                        var omega = axis * speedDegPerSec; // deg/s along axis
+
+                        return (true, curr.rot, curr.t, omega);
+                    })
+                .Select(s => s.omega)
+                .Scan(Vector3.positiveInfinity,
+                    (prev, curr) => (curr - prev).sqrMagnitude > (angVelEpsDegPerSec * angVelEpsDegPerSec) ? curr : prev)
+                .DistinctUntilChanged()
+                .Publish()
+                .RefCount();
+
+            // ---------------- Acceleration RMS (norm, m/s^2) ----------------
+            // Exponential (time-constant) RMS for stable "shake strength".
+            AccelerationRms = Acceleration
+                .Select(a => (t: Time.time, a2: a.sqrMagnitude))
+                .Scan(
+                    (has: false, lastT: 0f, s2: 0f, rms: 0f),
+                    (s, curr) =>
+                    {
+                        if (!s.has) return (true, curr.t, curr.a2, Mathf.Sqrt(curr.a2));
+                        float dt = Mathf.Max(curr.t - s.lastT, accMinDt);
+                        float tau = Mathf.Max(1e-4f, accRmsTauSec);
+                        float alpha = 1f - Mathf.Exp(-dt / tau); // EMA in time
+                        float s2 = (1f - alpha) * s.s2 + alpha * curr.a2;
+                        return (true, curr.t, s2, Mathf.Sqrt(s2));
+                    })
+                .Select(s => s.rms)
+                .Scan(float.PositiveInfinity, (prev, curr) => Mathf.Abs(curr - prev) > accRmsEps ? curr : prev)
+                .DistinctUntilChanged()
+                .Publish()
+                .RefCount();
+
+            // ---------------- Angular Velocity RMS (norm, deg/s) ----------------
+            AngularVelocityRms = AngularVelocity
+                .Select(w => (t: Time.time, w2: w.sqrMagnitude))
+                .Scan(
+                    (has: false, lastT: 0f, s2: 0f, rms: 0f),
+                    (s, curr) =>
+                    {
+                        if (!s.has) return (true, curr.t, curr.w2, Mathf.Sqrt(curr.w2));
+                        float dt = Mathf.Max(curr.t - s.lastT, angVelMinDt);
+                        float tau = Mathf.Max(1e-4f, angRmsTauSec);
+                        float alpha = 1f - Mathf.Exp(-dt / tau);
+                        float s2 = (1f - alpha) * s.s2 + alpha * curr.w2;
+                        return (true, curr.t, s2, Mathf.Sqrt(s2));
+                    })
+                .Select(s => s.rms)
+                .Scan(float.PositiveInfinity, (prev, curr) => Mathf.Abs(curr - prev) > angRmsEps ? curr : prev)
+                .DistinctUntilChanged()
+                .Publish()
+                .RefCount();
+
+        }
+
+        /// <summary>
+        /// Creates the base update stream with optional throttling
+        /// </summary>
+        private IObservable<long> CreateBaseStream(int throttleFrames, float throttleSeconds)
+        {
+            var baseStream = Observable.EveryUpdate();
+
+            // Apply frame-based throttling
+            if (throttleFrames > 0)
+            {
+                baseStream = baseStream.SampleFrame(throttleFrames);
+            }
+
+            // Apply time-based throttling
+            if (throttleSeconds > 0f)
+            {
+                baseStream = baseStream.Sample(TimeSpan.FromSeconds(throttleSeconds));
+            }
+
+            return baseStream;
         }
 
         private static bool NearlyEqualAxes(
@@ -223,16 +348,16 @@ public static class RefStreamProvider
     // ------------------------- Public Streams (cached per device) -------------------------
 
     public static IObservable<(Vector3 pos, Quaternion rot)> DevicePoseStream(Device device)
-        => device?.transform ? Streams(device).Pose : EmptyStream<(Vector3, Quaternion)>("DevicePoseStream");
+        => device?.getTransform() ? Streams(device).Pose : EmptyStream<(Vector3, Quaternion)>("DevicePoseStream");
 
     public static IObservable<(Vector3 up, Vector3 fwd, Vector3 right, Vector3 diag1, Vector3 diag2)> AxisStream(Device device)
-        => device?.transform ? Streams(device).Axes : EmptyStream<(Vector3, Vector3, Vector3, Vector3, Vector3)>("AxisStream");
+        => device?.getTransform() ? Streams(device).Axes : EmptyStream<(Vector3, Vector3, Vector3, Vector3, Vector3)>("AxisStream");
 
     public static IObservable<Vector3> EulerAnglesStream(Device device)
-        => device?.transform ? Streams(device).Euler : EmptyStream<Vector3>("EulerAnglesStream");
+        => device?.getTransform() ? Streams(device).Euler : EmptyStream<Vector3>("EulerAnglesStream");
 
     public static IObservable<(Vector3 tr, Vector3 tl, Vector3 br, Vector3 bl)> CornersStream(Device device)
-        => device?.transform ? Streams(device).Corners : EmptyStream<(Vector3, Vector3, Vector3, Vector3)>("CornersStream");
+        => device?.getTransform() ? Streams(device).Corners : EmptyStream<(Vector3, Vector3, Vector3, Vector3)>("CornersStream");
 
     // Edges derived from Corners (no extra polling)
     public static IObservable<(Vector3, Vector3)> TopEdgeStream(Device dev) =>
@@ -256,10 +381,20 @@ public static class RefStreamProvider
     // ------------------------- Velocity / Acceleration -------------------------
 
     public static IObservable<Vector3> VelocityStream(Device device)
-        => device?.transform ? Streams(device).Velocity : EmptyStream<Vector3>("VelocityStream");
+        => device?.getTransform() ? Streams(device).Velocity : EmptyStream<Vector3>("VelocityStream");
 
     public static IObservable<Vector3> AccelerationStream(Device device)
-        => device?.transform ? Streams(device).Acceleration : EmptyStream<Vector3>("AccelerationStream");
+        => device?.getTransform() ? Streams(device).Acceleration : EmptyStream<Vector3>("AccelerationStream");
+
+
+    public static IObservable<Vector3> AngularVelocityStream(Device device)
+    => device?.getTransform() ? Streams(device).AngularVelocity : EmptyStream<Vector3>("AngularVelocityStream");
+
+    public static IObservable<float> AccelerationRmsStream(Device device)
+        => device?.getTransform() ? Streams(device).AccelerationRms : EmptyStream<float>("AccelerationRmsStream");
+
+    public static IObservable<float> AngularVelocityRmsStream(Device device)
+        => device?.getTransform() ? Streams(device).AngularVelocityRms : EmptyStream<float>("AngularVelocityRmsStream");
 
     // ------------------------- Generic accessors -------------------------
 

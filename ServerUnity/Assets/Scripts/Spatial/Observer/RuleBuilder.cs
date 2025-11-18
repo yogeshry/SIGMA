@@ -107,7 +107,7 @@ public sealed class RuleBuilder
             var stateChanges = stateBase.DistinctUntilChanged().Publish().RefCount();
 
             // ---------- Publish snapshot (measurement objects) ----------
-            var publishSnapshot = BuildPublishSnapshot(pair, pubs, spec, usedIds).Publish().RefCount();
+            var publishSnapshot = BuildPublishSnapshot(pair, pubs, spec, usedIds, RuleBuilderHelpers.GetMappingToken(spec?.publish)).Publish().RefCount();
             var latestSnapshot = publishSnapshot.StartWith(new Dictionary<string, object>()).Publish().RefCount();
 
 
@@ -246,7 +246,9 @@ public sealed class RuleBuilder
         DevicePair pair,
         List<(string path, string primitiveId)> pubs,
         RuleSpec spec,
-         HashSet<string> usedIds)
+         HashSet<string> usedIds,
+             JToken mappingToken // <-- NEW
+)
     {
         if (pubs == null || pubs.Count == 0)
             return Observable.Return(new Dictionary<string, object>());
@@ -283,14 +285,45 @@ public sealed class RuleBuilder
 
                 valueStreams.Add(vs);
             }
+            else
+            {
+                // ----- feature path: A.<ref> / B.<ref> (e.g., A.corners)
+                // Map to device + feature name
+                var path = p.path ?? string.Empty;
+                Device dev = null;
+                string feature = null;
 
-        }
+                if (path.StartsWith("A.", StringComparison.OrdinalIgnoreCase))
+                {
+                    dev = pair.A;
+                    feature = path.Substring(2); // after "A."
+                }
+                else if (path.StartsWith("B.", StringComparison.OrdinalIgnoreCase))
+            {
+                    dev = pair.B;
+                    feature = path.Substring(2); // after "B."
+                }
+
+                if (dev != null && !string.IsNullOrWhiteSpace(feature))
+                {
+                    var vs = ResolveFeatureStream(dev, feature)
+                        .DistinctUntilChanged(ObjectEquality.Instance)
+                        .Select(val => new PublishSample(path, val));
+
+                    if (TraceValues)
+                        vs = vs.Do(s => Debug.Log($"[Rule {spec.id}|feat {path}] Value={FormatForLog(s.Value)}"));
+
+                    valueStreams.Add(vs);
+                }
+            }
+
+            }
 
 
         if (missing.Count > 0)
             throw new ArgumentException($"Primitives not found for publish: {string.Join(", ", missing)}");
 
-        return valueStreams
+        IObservable<Dictionary<string, object>> baseSnapshot = valueStreams
             .Merge()
             .Scan(new Dictionary<string, object>(), (acc, sample) =>
             {
@@ -299,7 +332,148 @@ public sealed class RuleBuilder
                 return next;
             })
             .DistinctUntilChanged(new DictObjectComparer()); // snapshot de-dupe
+                                                             // 2.2) Apply mappings (no-op if mappingToken is null)
+        return MappingResolver.ApplyMappingsIfAny(baseSnapshot, pair, mappingToken);
     }
+
+    //private IObservable<Dictionary<string, object>> ApplyMappingsIfAny(
+    //  IObservable<Dictionary<string, object>> baseSnapshot,
+    //  DevicePair pair,
+    //  JToken mappingToken)
+    //{
+    //    if (mappingToken == null || mappingToken.Type != JTokenType.Object)
+    //        return baseSnapshot;
+
+    //    var defCorners = default((Vector3 TL, Vector3 TR, Vector3 BL, Vector3 BR));
+
+    //    var cornersAObs = RefStreamProvider.CornersStream(pair.A)
+    //        .Select(c => (TL: c.tl, TR: c.tr, BL: c.bl, BR: c.br))
+    //        .Publish().RefCount();
+
+    //    var cornersBObs = (pair.B != null
+    //        ? RefStreamProvider.CornersStream(pair.B)
+    //            .Select(c => (TL: c.tl, TR: c.tr, BL: c.bl, BR: c.br))
+    //            .Publish().RefCount()
+    //        : Observable.Return(defCorners));
+
+    //    var cornersAB = Observable.CombineLatest(
+    //        cornersAObs.StartWith(defCorners),
+    //        cornersBObs.StartWith(defCorners),
+    //        (a, b) => (a, b)
+    //    );
+
+    //    (int w, int h) GetRes(Device d)
+    //    {
+    //        return (d.displaySize.widthPixels, d.displaySize.heightPixels);
+    //    }
+
+    //    return baseSnapshot
+    //        .WithLatestFrom(cornersAB, (snap, ab) => (snap, ab.a, ab.b))
+    //        .Select(tuple =>
+    //        {
+    //            var (snap, ca, cb) = tuple;
+    //            var haveA = !(ca.TL == default && ca.TR == default);
+    //            var haveB = !(cb.TL == default && cb.TR == default);
+
+    //            var (WA, HA) = GetRes(pair.A);
+    //            var (WB, HB) = (pair.B != null) ? GetRes(pair.B) : (0, 0);
+
+    //            var outSnap = new Dictionary<string, object>(snap);
+    //            var map = new Dictionary<string, object>();
+
+    //            try
+    //            {
+    //                // ---- toPixelA ----
+    //                var toA = mappingToken["toPixelA"];
+    //                if (toA != null && haveA)
+    //                {
+    //                    var world = RuleBuilderHelpers.ResolveWorldInputs(toA, snap);
+    //                    if (world != null && world.Length > 0)
+    //                    {
+ 
+    //                        map["toPixelA"] = CoordinateMapping.WorldToPixelFromCornersList(
+    //                                world, WA, HA, ca.TL, ca.TR, ca.BL, ca.BR, true); ;
+    //                    }
+    //                }
+
+    //                // ---- toPixelB ----
+    //                var toB = mappingToken["toPixelB"];
+    //                if (toB != null && haveB && WB > 0 && HB > 0)
+    //                {
+    //                    var world = RuleBuilderHelpers.ResolveWorldInputs(toB, snap);
+    //                    if (world!=null && world.Length > 0)
+    //                    {
+
+    //                        map["toPixelB"] = CoordinateMapping.WorldToPixelFromCornersList(
+    //                                world, WB, HB, cb.TL, cb.TR, cb.BL, cb.BR, true);
+
+    //                    }
+    //                }
+
+    //                // ---- fromPixelA (absolute pixel points) ----
+    //                var fromA = mappingToken["fromPixelA"];
+    //                if (fromA != null && haveA)
+    //                {
+    //                    var pix = RuleBuilderHelpers.ResolvePixelInputs(fromA); // absolute pixels
+    //                    if (pix.Length > 0)
+    //                    {
+    //                        map["fromPixelA"] = CoordinateMapping.PixelToWorldFromCornersList(
+    //                                pix, WA, HA, ca.TL, ca.TR, ca.BL, ca.BR, true); ;
+    //                    }
+    //                }
+
+    //                // ---- fromPixelB (absolute pixel points) ----
+    //                var fromB = mappingToken["fromPixelB"];
+    //                if (fromB != null && haveB && WB > 0 && HB > 0)
+    //                {
+    //                    var pix = RuleBuilderHelpers.ResolvePixelInputs(fromB); // absolute pixels
+    //                    if (pix.Length > 0)
+    //                    {
+    //                        map["fromPixelB"] = CoordinateMapping.PixelToWorldFromCornersList(
+    //                                pix, WB, HB, cb.TL, cb.TR, cb.BL, cb.BR, true); ;
+    //                    }
+    //                }
+
+    //                //// ---- semantic remap ----
+    //                //var sem = mappingToken["semantic"];
+    //                //if (sem?.Type == JTokenType.Object)
+    //                //{
+    //                //    var primId = (string)sem["primitive"];
+    //                //    var outRange = ReadRange(sem["range"]) ?? new Vector2(0, 1);
+    //                //    var inDomain = ReadRange(sem["domain"]) ?? new Vector2(0, 1);
+    //                //    var path = (string)sem["path"];
+    //                //    if (!string.IsNullOrEmpty(primId) && string.IsNullOrEmpty(path))
+    //                //        path = $"primitives.{primId}.measurement";
+
+    //                //    if (!string.IsNullOrEmpty(path) && snap.TryGetValue(path, out var raw))
+    //                //    {
+    //                //        if (TryReadNumber(raw, out float v))
+    //                //        {
+    //                //            map["semantic"] = RangeMap.Remap(v, inDomain.x, inDomain.y, outRange.x, outRange.y, true);
+    //                //        }
+    //                //        else if (raw is JObject jo &&
+    //                //                 TryReadNumber(jo["value"], out float vv) &&
+    //                //                 TryReadNumber(jo["min"], out float vmin) &&
+    //                //                 TryReadNumber(jo["max"], out float vmax))
+    //                //        {
+    //                //            map["semantic"] = RangeMap.Remap(vv, vmin, vmax, outRange.x, outRange.y, true);
+    //                //        }
+    //                //    }
+    //                //}
+    //            }
+    //            catch (Exception ex)
+    //            {
+    //                Debug.LogWarning($"[RuleBuilder] mapping apply error: {ex.Message}");
+    //            }
+
+    //            if (map.Count > 0)
+    //                outSnap["mapping"] = map;
+
+    //            return outSnap;
+    //        })
+    //        .DistinctUntilChanged(new DictObjectComparer());
+    //}
+
 
     // ===== Boolean combiner (AND / OR / NOT) =====
     private static IObservable<bool> CombineBooleanStreams(IReadOnlyList<IObservable<bool>> streams, string op)
@@ -321,8 +495,9 @@ public sealed class RuleBuilder
         }
 
         if (op == "AND")
-            return MergeScan(streams, seed: true, reducerAll: true);
+            return MergeScan(streams, seed: false, reducerAll: true);
 
+        // OR
         return MergeScan(streams, seed: false, reducerAll: false);
     }
 
@@ -567,14 +742,40 @@ public sealed class RuleBuilder
         if (device == null) throw new ArgumentNullException(nameof(device));
         if (string.IsNullOrWhiteSpace(refName)) throw new ArgumentException("feature ref must be non-empty", nameof(refName));
 
+        // helpers
+        static string P(Vector3 v) => $"({v.x:F3},{v.y:F3},{v.z:F3})";
+        static string CornersStr((Vector3 tr, Vector3 tl, Vector3 bl, Vector3 br) c)
+            => $"[{P(c.tr)}, {P(c.tl)}, {P(c.bl)}, {P(c.br)}]";
+
         var rn = refName.Trim();
 
-        // Common: corners → array of 4 Vector3
+        // --- Full corners as one formatted string ---
         if (string.Equals(rn, "corners", StringComparison.OrdinalIgnoreCase))
         {
             return RefStreamProvider.CornersStream(device)
-                .Select(c => (object)new Vector3[] { c.tr, c.tl, c.bl, c.br });
+                .Select(c => (object)CornersStr(c));
         }
+
+        // (Optional) Named corners as "(x,y,z)" strings
+        if (rn.Equals("topLeft", StringComparison.OrdinalIgnoreCase) || rn.Equals("tl", StringComparison.OrdinalIgnoreCase))
+            return RefStreamProvider.CornersStream(device).Select(c => (object)P(c.tl));
+        if (rn.Equals("topRight", StringComparison.OrdinalIgnoreCase) || rn.Equals("tr", StringComparison.OrdinalIgnoreCase))
+            return RefStreamProvider.CornersStream(device).Select(c => (object)P(c.tr));
+        if (rn.Equals("bottomLeft", StringComparison.OrdinalIgnoreCase) || rn.Equals("bl", StringComparison.OrdinalIgnoreCase))
+            return RefStreamProvider.CornersStream(device).Select(c => (object)P(c.bl));
+        if (rn.Equals("bottomRight", StringComparison.OrdinalIgnoreCase) || rn.Equals("br", StringComparison.OrdinalIgnoreCase))
+            return RefStreamProvider.CornersStream(device).Select(c => (object)P(c.br));
+
+        // (Optional) Edges as "A.rightEdge=[(x,y,z), (x,y,z)]"
+        if (rn.Equals("topEdge", StringComparison.OrdinalIgnoreCase))
+            return RefStreamProvider.CornersStream(device).Select(c => (object)$"[{P(c.tl)}, {P(c.tr)}]");
+        if (rn.Equals("bottomEdge", StringComparison.OrdinalIgnoreCase))
+            return RefStreamProvider.CornersStream(device).Select(c => (object)$"[{P(c.bl)}, {P(c.br)}]");
+        if (rn.Equals("leftEdge", StringComparison.OrdinalIgnoreCase))
+            return RefStreamProvider.CornersStream(device).Select(c => (object)$"[{P(c.tl)}, {P(c.bl)}]");
+        if (rn.Equals("rightEdge", StringComparison.OrdinalIgnoreCase))
+            return RefStreamProvider.CornersStream(device).Select(c => (object)$"[{P(c.tr)}, {P(c.br)}]");
+
 
         // Use geometry classification for other refs
         var g = RefStreamProvider.GetStreamGeometryType(rn);

@@ -98,7 +98,7 @@ public static class DeviceSpatialProvider
     /// </summary>
     public static DevicePose GetDevicePose(Device info)
     {
-        Transform t = info.transform;
+        Transform t = info.getTransform();
         return new DevicePose(t.position, t.rotation);
     }
 
@@ -109,7 +109,7 @@ public static class DeviceSpatialProvider
     /// <param name="physicalSize">Physical size (width, height) in world units.</param>
     public static SurfaceExtent GetSurfaceExtent(Device info, Vector2 physicalSize)
     {
-        Transform t = info.transform;
+        Transform t = info.getTransform();
         Vector3 center = t.position;
         Vector3 rightV = t.right.normalized;
         Vector3 forwardV = t.forward.normalized;
@@ -141,7 +141,7 @@ public static class DeviceSpatialProvider
     /// </summary>
     public static AxisDirections GetAxisDirections(Device info)
     {
-        Transform t = info.transform;
+        Transform t = info.getTransform();
         return new AxisDirections(
             up: t.up.normalized,
             forward: t.forward.normalized,
