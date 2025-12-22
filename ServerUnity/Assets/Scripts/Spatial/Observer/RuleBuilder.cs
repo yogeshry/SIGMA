@@ -626,7 +626,7 @@ public sealed class RuleBuilder
     {
         public static readonly ObjectEquality Instance = new ObjectEquality();
 
-        private const float Eps = 1e-4f;
+        private const float Eps = 0.007f;
 
         public new bool Equals(object x, object y)
         {

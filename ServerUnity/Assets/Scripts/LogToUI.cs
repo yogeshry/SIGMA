@@ -25,7 +25,7 @@ public class LogToUI : MonoBehaviour
 
     void HandleLog(string logString, string stackTrace, LogType type)
     {
-        if (logString.StartsWith("[Rule"))
+        if (true)
         {
             logs += logString + "\n";
 

@@ -4,6 +4,7 @@ public class MouseMovement : MonoBehaviour
 {
     private Vector3 mousePosition;
     //public GameObject pointer;
+    public float poseScale = 2f; // Adjust the speed of movement
     public float speed = 5f; // Adjust the speed of movement
     public float rotationSpeed = 10f; // degrees per second
 
@@ -16,7 +17,7 @@ public class MouseMovement : MonoBehaviour
         Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(mousePosition.x, mousePosition.y, transform.position.z));
 
         // Move the object towards the world position
-        transform.position = new Vector3(mousePosition.x / 1000, mousePosition.y / 1000, transform.position.z);
+        transform.position = new Vector3(mousePosition.x * poseScale / 1000, mousePosition.y * poseScale / 1000-0.8f, transform.position.z);
         //Debug.Log($"Mouse Position: {mousePosition}, World Position: {worldPosition}");
 
         // key driven z movement g h

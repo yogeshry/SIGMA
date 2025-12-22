@@ -22,7 +22,7 @@
     },
     "unit": "cm"
   },
-  {
+    {
     "id": "proximateAbove",
     "description": "Vertical Distance between between  device A and device (Y up)",
     "metric": "distance:-Y",
@@ -31,6 +31,17 @@
       "gt": 5,
       "lt": 15,
       "tolerance": 3
+    },
+    "unit": "cm"
+  },
+  {
+    "id": "distantAbove",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance:-Y",
+    "refs": ["position", "position"],
+    "condition": {
+      "gt": 5,
+      "tolerance": 0
     },
     "unit": "cm"
   },
@@ -86,7 +97,18 @@
     "refs": ["rightEdge", "leftEdge"],
     "condition": {
       "eq": 0,
-      "tolerance": 2
+      "tolerance": 3
+    },
+    "unit": "cm"
+  },
+    {
+    "id": "contactLateralEdgeLeftRight",
+    "description": "Distance between right edge of device A and left edge of device B is zero",
+    "metric": "distance",
+    "refs": ["leftEdge", "rightEdge"],
+    "condition": {
+      "eq": 0,
+      "tolerance": 3
     },
     "unit": "cm"
   },
@@ -123,6 +145,17 @@
     },
     "unit": "cm"
   },
+    {
+    "id": "cornerDiagonalContactTRtoBL",
+    "description": "Distance between bottom left corner of device A and top right corner of device B",
+    "metric": "distance:minorDiagonalB",
+    "refs": ["topRightCorner", "bottomLeftCorner"],
+    "condition": {
+      "eq": 0,
+      "tolerance": 4
+    },
+    "unit": "cm"
+  },
   {
     "id": "cornerContactTLtoBR",
     "description": "Distance between top left corner of device A and bottom right corner of device B",
@@ -135,29 +168,121 @@
     "unit": "cm"
   },
   {
+    "id": "cornerContactTLtoTR",
+    "description": "Distance between top left corner of device A and bottom right corner of device B",
+    "metric": "distance",
+    "refs": ["topLeftCorner", "topRightCorner"],
+    "condition": {
+      "eq": 0,
+      "tolerance": 5
+    },
+    "unit": "cm"
+  },
+  {
+    "id": "contactRightEdgeToTopLeftCorner",
+    "description": "Distance between top left corner of device A and bottom right corner of device B",
+    "metric": "distance:forwardA",
+    "refs": ["rightEdge", "topLeftCorner"],
+    "condition": {
+      "eq": 0,
+      "tolerance": 0.2
+    },
+    "unit": "cm"
+  },
+  {
+    "id": "distantRightBcornerTLtoBR",
+    "description": "Distance between top left corner of device A and bottom right corner of device B along right vector of B",
+    "metric": "distance:leftB",
+    "refs": ["topLeftCorner", "bottomRightCorner"],
+    "condition": {
+      "gt": 5,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  },
+
+  {
     "id": "proximate",
     "description": "Devices are in proximity zone",
     "metric": "distance",
     "refs": ["position", "position"],
 
     "condition": {
-      "lt": 35,
+      "lt": 40,
       "tolerance": 0
     },
     "unit": "cm"
   },  
   {
-    "id": "proximate30",
+    "id": "proximate50",
     "description": "Devices are in proximity zone",
     "metric": "distance",
     "refs": ["position", "position"],
 
     "condition": {
-      "lt": 30,
+      "lt": 50,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  },    
+  {
+    "id": "forwardProximateCornersTLtoTR",
+    "description": "Devices are in proximity zone",
+    "metric": "distance:forwardA",
+    "refs": ["topRightCorner", "topLeftCorner"],
+    "condition": {
+      "lt": 8,
+      "gt":-8,
       "tolerance": 0
     },
     "unit": "cm"
   },  
+  {
+    "id": "distantCornerTRToBL",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["topRightCorner", "bottomLeftCorner"],
+    "condition": {
+      "gt": 3,
+      "tolerance": 0
+    },
+    "unit": "cm"
+
+  },  
+    {
+    "id": "distantCornerTRToTL",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["topRightCorner", "topLeftCorner"],
+    "condition": {
+      "gt": 3,
+      "tolerance": 0
+    },
+    "unit": "cm"
+
+  }, 
+  {
+    "id": "contactCornerTRToTL",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["topRightCorner", "topLeftCorner"],
+    "condition": {
+      "lt": 2,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  },
+    {
+    "id": "contactCornerTLToTR",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["topLeftCorner", "topRightCorner"],
+    "condition": {
+      "lt": 2,
+      "tolerance": 0
+    },
+    "unit": "cm"
+  },
   {
     "id": "proximateLeftEdge",
     "description": "Devices are in proximity zone",
@@ -210,7 +335,7 @@
     "refs": ["rightEdge", "leftEdge"],
     "condition": {
       "gt": 0,
-      "lt": 10,
+      "lt": 15,
       "tolerance": 1
     },
     "unit": "cm"
@@ -260,6 +385,7 @@
     },
     "unit": "deg"
   },
+  
   {
     "id": "lateralTilt30",
     "description": "the lateral vector of devices are at 30 degree angle",
@@ -276,6 +402,18 @@
     "description": "the lateral vector of devices are at 30 degree angle",
     "metric": "angle",
     "refs": ["rightVector", "rightVector"],
+    "unit": "deg"
+  },  
+  {
+    "id": "longitudinalTiltTo90",
+    "description": "the lateral vector of devices are at 30 degree angle",
+    "metric": "angle",
+    "refs": ["forwardVector", "forwardVector"],
+    "condition": {
+      "lt": 90,
+      "gt": 5,
+      "tolerance": 0
+    },
     "unit": "deg"
   },
 
@@ -450,6 +588,20 @@
   },
 
   {
+    "id": "forwardApproach",
+    "description": "the velocity vector of device A is pointing towards the bottom right corner of device B",
+    "metric": "acceleration_rms:forwardA",
+    "condition": {
+      "gt": 40
+      ,
+      "tolerance": 0
+    },
+        "params":{"halfLifeSec":1},
+
+    "unit": "cm/s^2"
+  },
+
+  {
     "id": "diagonalRetreat",
     "description": "the velocity vector of device A is pointing away from the bottom left corner of device B",
     "metric": "velocity:-majorDiagonalB",
@@ -472,13 +624,14 @@
   {
     "id": "lateralEdgeApproach",
     "description": "the velocity vector of device A is pointing away from the bottom right corner of device B",
-    "metric": "velocity",
-    "refs": ["rightEdge", "leftEdge"],
+    "metric": "acceleration_rms:rightA",
     "condition": {
-      "gt": 5,
+      "gt": 40,
       "tolerance": 0
     },
-    "unit": "cm/s"
+        "params":{"halfLifeSec":1},
+
+    "unit": "cm/s^2"
   },
   {
     "id": "positional_shake",

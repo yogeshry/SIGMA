@@ -9,9 +9,7 @@ using System.Linq;
 using Unity.VisualScripting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;           // <-- add this
-using WebSocketSharp.Server;
-using static UnityEngine.Rendering.CoreUtils;
-using TMPro;
+
 using System.Globalization;
 using System.Collections;
 
@@ -29,6 +27,7 @@ public class ObservableManager
     public ObservableManager()
     {
         _builder = new RuleBuilder(_primitives);
+
         //_builder = new RuleBuilder();
         //_primitives.PreloadAll();
     }
@@ -64,44 +63,45 @@ public class ObservableManager
 
                 // Optional: broadcast (unchanged)
                 WsHub.Broadcast(new { spec.id, type = "spatial_observable", state = evt.State, streams = streamsJson });
+                SpatialEventBus.Publish(new SpatialEvent(spec.id, "spatial_observable", evt.State, streamsJson));
 
-                // --- Handle rightSideProximity -> fade ---
-                if (evt.State && string.Equals(spec.id, "rightSideProximity", StringComparison.Ordinal))
-                {
-                    if (TryGetFloat(evt.Streams, "primitives.proximateLateralEdge.measurement", out var prox))
-                    {
-                        // Map prox (0..0.1) -> fade (0.1..1.0)
-                        float t = Mathf.Clamp01(prox / 0.1f);
-                        float fade = Mathf.Lerp(0.1f, 1f, t);
+                //// --- Handle rightSideProximity -> fade ---
+                //if (evt.State && string.Equals(spec.id, "rightSideProximity", StringComparison.Ordinal))
+                //{
+                //    if (TryGetFloat(evt.Streams, "primitives.proximateLateralEdge.measurement", out var prox))
+                //    {
+                //        // Map prox (0..0.1) -> fade (0.1..1.0)
+                //        float t = Mathf.Clamp01(prox / 0.1f);
+                //        float fade = Mathf.Lerp(0.1f, 1f, t);
 
-                        // Find UI text object by canvas name "FilterOpacity"
-                        var canvasGO = GameObject.Find("FilterOpacity");
-                        var fadeText = canvasGO ? canvasGO.GetComponentInChildren<TMP_Text>(true) : null;
-                        if (fadeText != null)
-                            fadeText.text = $"{fade:F2}";
-                        Debug.Log($"[canvas] {canvasGO}");
-                        Debug.Log($"[edge] {TryGetEdge(evt.Streams, "B.leftEdge", out var b55, out var b12)}");
-                        // Align canvas plane to the midpoint between the two edge midpoints
-                        if (canvasGO != null &&
-                            TryGetEdge(evt.Streams, "B.leftEdge", out var b0, out var b1) &&
-                            TryGetEdge(evt.Streams, "A.rightEdge", out var a0, out var a1))
-                        {
-                            Vector3 midLeft = (b0 + b1) * 0.5f;  // midpoint of B.leftEdge
-                            Vector3 midRight = (a0 + a1) * 0.5f;  // midpoint of A.rightEdge
-                            Vector3 midBoth = (midLeft + midRight) * 0.5f;
+                //        // Find UI text object by canvas name "FilterOpacity"
+                //        var canvasGO = GameObject.Find("FilterOpacity");
+                //        var fadeText = canvasGO ? canvasGO.GetComponentInChildren<TMP_Text>(true) : null;
+                //        if (fadeText != null)
+                //            fadeText.text = $"{fade:F2}";
+                //        Debug.Log($"[canvas] {canvasGO}");
+                //        Debug.Log($"[edge] {TryGetEdge(evt.Streams, "B.leftEdge", out var b55, out var b12)}");
+                //        // Align canvas plane to the midpoint between the two edge midpoints
+                //        if (canvasGO != null &&
+                //            TryGetEdge(evt.Streams, "B.leftEdge", out var b0, out var b1) &&
+                //            TryGetEdge(evt.Streams, "A.rightEdge", out var a0, out var a1))
+                //        {
+                //            Vector3 midLeft = (b0 + b1) * 0.5f;  // midpoint of B.leftEdge
+                //            Vector3 midRight = (a0 + a1) * 0.5f;  // midpoint of A.rightEdge
+                //            Vector3 midBoth = (midLeft + midRight) * 0.5f;
 
-                            canvasGO.transform.position = midBoth;
-                            Debug.Log($"[Fade] prox={midBoth} → fade={fade:F3}");
+                //            canvasGO.transform.position = midBoth;
+                //            Debug.Log($"[Fade] prox={midBoth} → fade={fade:F3}");
 
-                            // Optional: orient canvas to face normal of polygon formed by the two edges
-                            canvasGO.transform.rotation = Quaternion.LookRotation(Vector3.up);
+                //            // Optional: orient canvas to face normal of polygon formed by the two edges
+                //            canvasGO.transform.rotation = Quaternion.LookRotation(Vector3.up);
 
-                        }
+                //        }
 
-                        // (Optional) If you also want to broadcast fade:
-                        // WsHub.Broadcast(new { type = "fade:update", fade });
-                    }
-                }
+                //        // (Optional) If you also want to broadcast fade:
+                //        // WsHub.Broadcast(new { type = "fade:update", fade });
+                //    }
+                //}
 
             });
         }

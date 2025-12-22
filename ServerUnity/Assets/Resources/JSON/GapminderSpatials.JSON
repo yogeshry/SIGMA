@@ -1,0 +1,402 @@
+// Desktop1: 50cm*33cm, 1920*1200, 95ppi, pixel/physical
+// Tab1: 23.7cm*14.81cm, 1920*1200, 206ppi, pixel/physical
+// Mobile1: 6.93cm*15cm, 1080*2340, 395ppi, pixel/physical
+
+// "Tab11": {
+          // // "name": "Tab1",
+          // "constraint": {
+          //   "type": "Mobile",
+          //   "width": { "eq": 1920 },
+          //   "height": { "eq": 1200 },
+          //   "ppi": { "eq": 206 }
+          // }
+// },
+// "Mobile1": {
+            // // "name": "Mobile1",
+            // "constraint": {
+            //   "type": "Mobile",
+            //   "width": { "eq": 1080 },
+            //   "height": { "eq": 2340 },
+            //   "ppi": { "eq": 395 }
+            // }
+// },
+[
+
+     {
+    "id": "bboxPublishTab",
+    "description": "Continuously publish the bounding box (corners) of device A.",
+    "entities": {
+        "deviceA": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "on": "always",
+    "publish": { "streams": [ "A.corners" ], 
+  "mapping": {
+            "fromPixelA": [[96,1120]]}
+  }
+  },
+      {
+    "id": "rightSideProximity",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {         
+        "deviceB": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceA": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+      },
+    "condition": { "operator": "AND", "primitives": [ "coLocalLevel", "parallelEdge", "proximateLateralEdge"] },
+    "on": "true",
+    "publish": { "streams": [ "primitives.proximateLateralEdge.measurement", "A.rightEdge", "B.leftEdge" ]
+    // ,
+          // "mapping": {
+          //   "toPixelA": ["primitives.forwardPointerToBottomEdge.measurement"], // custom ["A.corners"] // from stream
+          //   "toPixelB": ["primitives.forwardPointerToBottomEdge.measurement"] // custom
+          //   }
+        } 
+  },      
+    {
+    "id": "lateralEdgeContact_SideBySide",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceB": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceA": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "parallelSurface", "contactLateralEdge" ] },
+    "on": "enter",
+    "publish": { "streams": [] }
+  },
+    {
+    "id": "lateralEdgeContact_SideBySide_alternate",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceA": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceB": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "contactCornerTRToTL", "parallelSurface", "contactLateralEdge" ] },
+    "on": "enter",
+    "publish": { "streams": [] }
+  },    
+  {
+    "id": "longitudinalEdgeContact_SideBySide",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceA": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceB": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "parallelSurface", "contactLongitudinalEdge" ] },
+    "on": "enter",
+    "publish": { "streams": [] }
+  },   
+  {
+    "id": "lateralEdgeContact_SlideForward",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceB": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceA": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "forwardProximateCornersTLtoTR","parallelSurface", "contactLateralEdge", "parallelEdge" ] },
+    "on": "true",
+    "publish": { "streams": ["primitives.forwardProximateCornersTLtoTR.measurement"] }
+  },
+  {
+    "id": "lateralEdgeSlide",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceA": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceB": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "parallelEdge","parallelSurface", "contactCornerTLToTR","forwardApproach"] },
+    "on": "enter",
+    "publish": { "streams": ["primitives.forwardApproach.measurement"] }
+  },
+    {
+    "id": "lateralEdgeApproach",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceA": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceB": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "parallelEdge", "parallelSurface", "contactCornerTLToTR", "lateralEdgeApproach"] },
+    "on": "enter",
+    "publish": { "streams": ["primitives.lateralEdgeApproach.measurement"] }
+  },
+    {
+    "id": "parallelSurfaceDistantAbove",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceA": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceB": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "parallelEdge", "cornerDiagonalContactTRtoBL", "distantAbove" ] },
+    "on": "true",
+    "publish": { "streams": ["primitives.distantAbove.measurement"] }
+  },  
+  // {
+  //   "id": "parallelSurfaceDistantRightBcornerTLtoBR",
+  //   "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+  //       "entities": {
+  //       "deviceA": {
+  //         // "name": "Mobile1",
+  //         "constraint": {
+  //           "type": "Mobile",
+  //           "width": { "eq": 1080 },
+  //           "height": { "eq": 2340 },
+  //           "ppi": { "eq": 395 }
+  //         }
+  //       },
+  //       "deviceB": {
+  //         // "name": "Tab1",
+  //         "constraint": {
+  //           "type": "Mobile",
+  //           "width": { "eq": 1920 },
+  //           "height": { "eq": 1200 },
+  //           "ppi": { "eq": 206 }
+  //         }
+  //       }
+  //   },
+  //   "condition": { "operator": "AND", "primitives": [ "parallelSurface", "distantRightBcornerTLtoBR" ] },
+  //   "on": "true",
+  //   "publish": { "streams": ["primitives.distantRightBcornerTLtoBR.measurement"] }
+  // },
+    {
+    "id": "cornerContactTRtoBL",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceA": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceB": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "cornerContactTRtoBL" ] },
+    "on": "enter",
+    "publish": { "streams": [] }
+  },
+  //   {
+  //   "id": "cornerContactTLtoBR",
+  //   "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+  //       "entities": {
+  //       "deviceA": {
+  //         // "name": "Mobile1",
+  //         "constraint": {
+  //           "type": "Mobile",
+  //           "width": { "eq": 1080 },
+  //           "height": { "eq": 2340 },
+  //           "ppi": { "eq": 395 }
+  //         }
+  //       },
+  //       "deviceB": {
+  //         // "name": "Tab1",
+  //         "constraint": {
+  //           "type": "Mobile",
+  //           "width": { "eq": 1920 },
+  //           "height": { "eq": 1200 },
+  //           "ppi": { "eq": 206 }
+  //         }
+  //       }
+  //   },
+  //   "condition": { "operator": "AND", "primitives": [ "cornerContactTLtoBR" ] },
+  //   "on": "enter",
+  //   "publish": { "streams": [] }
+  // },
+  //   {
+  //   "id": "cornerContactTLtoTRPivot",
+  //   "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+  //       "entities": {
+  //       "deviceA": {
+  //         // "name": "Mobile1",
+  //         "constraint": {
+  //           "type": "Mobile",
+  //           "width": { "eq": 1080 },
+  //           "height": { "eq": 2340 },
+  //           "ppi": { "eq": 395 }
+  //         }
+  //       },
+  //       "deviceB": {
+  //         // "name": "Tab1",
+  //         "constraint": {
+  //           "type": "Mobile",
+  //           "width": { "eq": 1920 },
+  //           "height": { "eq": 1200 },
+  //           "ppi": { "eq": 206 }
+  //         }
+  //       }
+  //   },
+  //   "condition": { "operator": "AND", "primitives": [ "cornerContactTLtoTR", "parallelSurface", "longitudinalTiltTo90" ] },
+  //   "on": "true",
+  //   "publish": { "streams": ["primitives.longitudinalTiltTo90.measurement", "A.leftEdge", "B.rightEdge"] }
+  // },
+    {
+    "id": "lateralEdgeContactPivot",
+    "description": "Two devices side-by-side in the same plane with touching lateral edges.",
+        "entities": {
+        "deviceA": {
+          // "name": "Mobile1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1080 },
+            "height": { "eq": 2340 },
+            "ppi": { "eq": 395 }
+          }
+        },
+        "deviceB": {
+          // "name": "Tab1",
+          "constraint": {
+            "type": "Mobile",
+            "width": { "eq": 1920 },
+            "height": { "eq": 1200 },
+            "ppi": { "eq": 206 }
+          }
+        }
+    },
+    "condition": { "operator": "AND", "primitives": [ "distantCornerTRToTL", "distantCornerTRToBL","contactLateralEdge", "parallelSurface", "longitudinalTiltTo90" ] },
+    "on": "true",
+    "publish": { "streams": ["primitives.longitudinalTiltTo90.measurement"] }
+  }
+]

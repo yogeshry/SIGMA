@@ -38,10 +38,10 @@ public static class RefStreamProvider
         public DeviceStreams(
      Device d,
      // Epsilon parameters
-     float posEps = 0.006f,           // 5 mm
-     float cornerGateEps2 = 0.000036f,
-     float axisEps2 = 0.000036f,
-     float axesGateEps2 = 0.000036f,
+     float posEps = 0.007f,           // 5 mm
+     float cornerGateEps2 = 0.00005f,
+     float axisEps2 = 0.00005f,
+     float axesGateEps2 = 0.00005f,
      float rotEpsDeg = 3f,            // 2°
      float eulerEpsDeg = 3f,          // 2°
                                       // Velocity/Acceleration parameters
@@ -378,6 +378,17 @@ public static class RefStreamProvider
         return Streams(device).Corners.Select(selector).DistinctUntilChanged().Publish().RefCount();
     }
 
+    public static IObservable<Vector3> PositionStreamUngated(Device d, int throttleFrames = 0, float throttleSeconds = 0f)
+    {
+        if (d == null || d.getTransform() == null)
+            return Observable.Empty<Vector3>().Publish().RefCount();
+
+        IObservable<long> baseStream = Observable.EveryUpdate();
+        if (throttleFrames > 0) baseStream = baseStream.SampleFrame(throttleFrames);
+        if (throttleSeconds > 0f) baseStream = baseStream.Sample(TimeSpan.FromSeconds(throttleSeconds));
+
+        return baseStream.Select(_ => d.getTransform().position).Publish().RefCount();
+    }
     // ------------------------- Velocity / Acceleration -------------------------
 
     public static IObservable<Vector3> VelocityStream(Device device)

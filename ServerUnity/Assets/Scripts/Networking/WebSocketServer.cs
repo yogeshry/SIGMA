@@ -69,6 +69,9 @@ public class UnityWebSocketServer : MonoBehaviour
             // Register your behavior end-point
             server.AddWebSocketService<RegistrationBehavior>("/register");
 
+            server.AddWebSocketService<ScatterUpdateBehavior>("/scatter");
+
+
             server.Start();
             Debug.Log($"WSS server started on wss://0.0.0.0:{port}/register (connect using a DNS name that matches the cert).");
         }

@@ -84,23 +84,23 @@ public class RegistrationBehaviorTester: MonoBehaviour
             ""screenWidth"": 1920,
             ""screenHeight"": 1200,
             ""ppi"": 95,
-            ""trackerName"": ""DesktopImageTarget""
+            ""trackerName"": ""Desktop1ImageTarget""
           }
         }");
 
 
 
         // 4) mock-createTarget for the desktop
-        //TestMessage(@"
-        //{
-        //  ""commandType"": ""createTarget"",
-        //  ""payload"": {
-        //    ""deviceId"": ""desktop-456"",
-        //    ""name"": ""DesktopImageTarget"",
-        //    ""textureBase64"": ""desk/path.png"",
-        //    ""size"": 0.5
-        //  }
-        //}");
+        TestMessage(@"
+        {
+          ""commandType"": ""createTarget"",
+          ""payload"": {
+            ""deviceId"": ""desktop-456"",
+            ""name"": ""Desktop1ImageTarget"",
+            ""textureBase64"": ""desk/path.png"",
+            ""size"": 0.5
+          }
+        }");
     }
     public void TestMessage(string json)
     {

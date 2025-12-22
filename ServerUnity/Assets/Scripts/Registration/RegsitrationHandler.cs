@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using TMPro;
 using Vuforia;
+using static EdgeSpaceAllEdgesBands;
 
 /// <summary>
 /// Handles the registration and target creation logic for WebSocket messages.
@@ -119,24 +120,34 @@ public class RegistrationHandler
 
                 DeviceManager.addTransform(deviceId, tracker.transform);
 
-                // if tracker name == "DesktopIRTracker" pause vuforia tracking
-                // If tracker name == "DesktopIRTracker", pause Vuforia tracking
-                if (trackerName == "DesktopImageTarget")
-                { 
-                    // Disable the ImageTargetBehaviour to stop tracking.
+                // if tracker name == "DesktopIRTracker" pause vuforia tracking  
+                // If tracker name == "DesktopIRTracker", pause Vuforia tracking  
+                if (trackerName == "Desktop1ImageTarget")
+                {
+                    // Disable the ImageTargetBehaviour to stop tracking.  
                     var observerBehaviour = tracker.GetComponent<ImageTargetBehaviour>();
                     if (observerBehaviour != null)
                     {
                         observerBehaviour.enabled = false;
                         Debug.Log($"[WS] Vuforia tracking paused for tracker '{trackerName}' on device {deviceId}.");
                     }
-                    Utils.UpdateDeviceSpaceLabel(tracker.transform, deviceId);
+                    tracker.GetComponent<EdgeSpaceAllEdgesBands>().SetDeviceId(deviceId);
                 }
 
                 if (verboseLogs)
-                    Debug.Log($"[WS] Tracker {trackerName} attached to Device {deviceId}");
+                   Debug.Log($"[WS] Tracker {trackerName} attached to Device {deviceId}");
                 Utils.UpdateDeviceOutline(tracker.transform, deviceId);
-                Utils.DisableDeviceOutline(tracker.transform);
+                //Utils.DisableDeviceOutline(tracker.transform);  
+
+                Scatter3DController _chart = GameObject.FindObjectOfType<Scatter3DController>();
+                if (trackerName == "TabMockTracker")
+                {
+                    if (_chart != null)
+                    {
+                        _chart.SetOrigin(tracker.transform);
+                    }
+                }
+
             });
         }
         catch (Exception ex)

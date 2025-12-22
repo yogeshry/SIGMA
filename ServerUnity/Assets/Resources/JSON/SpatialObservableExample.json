@@ -11,6 +11,15 @@
             //   "ppi": { "eq": 95 }
             // }
 // },
+// "Desktop2": {
+            // // "name": "Desktop2",
+            // "constraint": {
+              // "type": "Desktop2",
+            //   "width": { "eq": 3840 },
+            //   "height": { "eq": 2160 },
+            //   "ppi": { "eq": 140 }
+            // }
+// },
 // "Tab11": {
           // // "name": "Tab1",
           // "constraint": {
@@ -54,7 +63,7 @@
           }
         }
       },
-    "condition": { "operator": "AND", "primitives": [ "proximate30", "belowBottomEdge", "forwardPointerToBottomEdge" ] },
+    "condition": { "operator": "AND", "primitives": [ "proximate50", "belowBottomEdge", "forwardPointerToBottomEdge" ] },
     "on": "true",
     "publish": { "streams": [ "primitives.forwardPointerToBottomEdge.measurement" ]
     // ,
@@ -163,271 +172,155 @@
           //   "toPixelB": ["primitives.forwardPointerToBottomEdge.measurement"] // custom
           //   }
         } 
-  } , {
-    "id": "shakeNearLeftEdge",
-    "description": "A’s forward vector points to the Edge of B.",
-    "entities": {         
-        "deviceA": {
-          // "name":
-          //  "Mobile1",
-          "constraint": {
-            "type": "Mobile",
-            "width": { "eq": 1080 },
-            "height": { "eq": 2340 },
-            "ppi": { "eq": 395 }
-          }
-        },
-                "deviceB": {
-          // "name": "Desktop1",
-          "constraint": {
-            "type": "Desktop",
-            "width": { "eq": 1920 },
-            "height": { "eq": 1200 },
-            "ppi": { "eq": 95 }
-          }
-        }
-      },
-    "condition": { "operator": "AND", "primitives": [ "positional_shake","angular_shake","proximateLeftEdge"] },
-    "on": "enter",
-    "publish": { "streams": [ ]
-    // ,
-          // "mapping": {
-          //   "toPixelA": ["primitives.forwardPointerToBottomEdge.measurement"], // custom ["A.corners"] // from stream
-          //   "toPixelB": ["primitives.forwardPointerToBottomEdge.measurement"] // custom
-          //   }
-        } 
-  },
-  {
-    "id": "shakeNearRightEdge",
-    "description": "A’s forward vector points to the Edge of B.",
-    "entities": {         
-        "deviceA": {
-          // "name":
-          //  "Mobile1",
-          "constraint": {
-            "type": "Mobile",
-            "width": { "eq": 1080 },
-            "height": { "eq": 2340 },
-            "ppi": { "eq": 395 }
-          }
-        },
-                "deviceB": {
-          // "name": "Desktop1",
-          "constraint": {
-            "type": "Desktop",
-            "width": { "eq": 1920 },
-            "height": { "eq": 1200 },
-            "ppi": { "eq": 95 }
-          }
-        }
-      },
-    "condition": { "operator": "AND", "primitives": [ "positional_shake","angular_shake","proximateRightEdge"] },
-    "on": "enter",
-    "publish": { "streams": []
-  }
-},
-  {
-    "id": "shakeNearTopEdge",
-    "description": "A’s forward vector points to the Edge of B.",
-    "entities": {         
-        "deviceA": {
-          // "name":
-          //  "Mobile1",
-          "constraint": {
-            "type": "Mobile",
-            "width": { "eq": 1080 },
-            "height": { "eq": 2340 },
-            "ppi": { "eq": 395 }
-          }
-        },
-                "deviceB": {
-          // "name": "Desktop1",
-          "constraint": {
-            "type": "Desktop",
-            "width": { "eq": 1920 },
-            "height": { "eq": 1200 },
-            "ppi": { "eq": 95 }
-          }
-        }
-      },
-    "condition": { "operator": "AND", "primitives": [ "positional_shake","angular_shake","proximateTopEdge"] },
-    "on": "enter",
-    "publish": { "streams": []
-  }
-},
-  {
-    "id": "shakeNearBottomEdge",
-    "description": "A’s forward vector points to the Edge of B.",
-    "entities": {         
-        "deviceA": {
-          // "name":
-          //  "Mobile1",
-          "constraint": {
-            "type": "Mobile",
-            "width": { "eq": 1080 },
-            "height": { "eq": 2340 },
-            "ppi": { "eq": 395 }
-          }
-        },
-                "deviceB": {
-          // "name": "Desktop1",
-          "constraint": {
-            "type": "Desktop",
-            "width": { "eq": 1920 },
-            "height": { "eq": 1200 },
-            "ppi": { "eq": 95 }
-          }
-        }
-      },
-    "condition": { "operator": "AND", "primitives": [ "positional_shake","angular_shake","proximateBottomEdge"] },
-    "on": "enter",
-    "publish": { "streams": []
-  }
-}
-    ,
-     {
-    "id": "bboxPublishDesktop",
-    "description": "Continuously publish the bounding box (corners) of device A.",
-    "entities": {
-        "deviceA": {
-             // "name": "Desktop1",
-          "constraint": {
-            "type": "Desktop",
-            "width": { "eq": 1920 },
-            "height": { "eq": 1200 },
-            "ppi": { "eq": 95 }
-          }
-        }
-    },
-    "on": "always",
-    "publish": { "streams": [ "A.corners" ] }
-  }
+  } 
+  // , {
+//     "id": "shakeNearLeftEdge",
+//     "description": "A’s forward vector points to the Edge of B.",
+//     "entities": {         
+//         "deviceA": {
+//           // "name":
+//           //  "Mobile1",
+//           "constraint": {
+//             "type": "Mobile",
+//             "width": { "eq": 1080 },
+//             "height": { "eq": 2340 },
+//             "ppi": { "eq": 395 }
+//           }
+//         },
+//                 "deviceB": {
+//           // "name": "Desktop1",
+//           "constraint": {
+//             "type": "Desktop",
+//             "width": { "eq": 1920 },
+//             "height": { "eq": 1200 },
+//             "ppi": { "eq": 95 }
+//           }
+//         }
+//       },
+//     "condition": { "operator": "AND", "primitives": [ "positional_shake","angular_shake","proximateLeftEdge"] },
+//     "on": "enter",
+//     "publish": { "streams": [ ]
+//     // ,
+//           // "mapping": {
+//           //   "toPixelA": ["primitives.forwardPointerToBottomEdge.measurement"], // custom ["A.corners"] // from stream
+//           //   "toPixelB": ["primitives.forwardPointerToBottomEdge.measurement"] // custom
+//           //   }
+//         } 
+//   },
+//   {
+//     "id": "shakeNearRightEdge",
+//     "description": "A’s forward vector points to the Edge of B.",
+//     "entities": {         
+//         "deviceA": {
+//           // "name":
+//           //  "Mobile1",
+//           "constraint": {
+//             "type": "Mobile",
+//             "width": { "eq": 1080 },
+//             "height": { "eq": 2340 },
+//             "ppi": { "eq": 395 }
+//           }
+//         },
+//                 "deviceB": {
+//           // "name": "Desktop1",
+//           "constraint": {
+//             "type": "Desktop",
+//             "width": { "eq": 1920 },
+//             "height": { "eq": 1200 },
+//             "ppi": { "eq": 95 }
+//           }
+//         }
+//       },
+//     "condition": { "operator": "AND", "primitives": [ "positional_shake","angular_shake","proximateRightEdge"] },
+//     "on": "enter",
+//     "publish": { "streams": []
+//   }
+// },
+//   {
+//     "id": "shakeNearTopEdge",
+//     "description": "A’s forward vector points to the Edge of B.",
+//     "entities": {         
+//         "deviceA": {
+//           // "name":
+//           //  "Mobile1",
+//           "constraint": {
+//             "type": "Mobile",
+//             "width": { "eq": 1080 },
+//             "height": { "eq": 2340 },
+//             "ppi": { "eq": 395 }
+//           }
+//         },
+//                 "deviceB": {
+//           // "name": "Desktop1",
+//           "constraint": {
+//             "type": "Desktop",
+//             "width": { "eq": 1920 },
+//             "height": { "eq": 1200 },
+//             "ppi": { "eq": 95 }
+//           }
+//         }
+//       },
+//     "condition": { "operator": "AND", "primitives": [ "positional_shake","angular_shake","proximateTopEdge"] },
+//     "on": "enter",
+//     "publish": { "streams": []
+//   }
+// },
+//   {
+//     "id": "shakeNearBottomEdge",
+//     "description": "A’s forward vector points to the Edge of B.",
+//     "entities": {         
+//         "deviceA": {
+//           // "name":
+//           //  "Mobile1",
+//           "constraint": {
+//             "type": "Mobile",
+//             "width": { "eq": 1080 },
+//             "height": { "eq": 2340 },
+//             "ppi": { "eq": 395 }
+//           }
+//         },
+//                 "deviceB": {
+//           // "name": "Desktop1",
+//           "constraint": {
+//             "type": "Desktop",
+//             "width": { "eq": 1920 },
+//             "height": { "eq": 1200 },
+//             "ppi": { "eq": 95 }
+//           }
+//         }
+//       },
+//     "condition": { "operator": "AND", "primitives": [ "positional_shake","angular_shake","proximateBottomEdge"] },
+//     "on": "enter",
+//     "publish": { "streams": []
+//   }
+// }
+//     ,
+//      {
+//     "id": "bboxPublishDesktop",
+//     "description": "Continuously publish the bounding box (corners) of device A.",
+//     "entities": {
+//         "deviceA": {
+//              // "name": "Desktop1",
+//           "constraint": {
+//             "type": "Desktop",
+//             "width": { "eq": 1920 },
+//             "height": { "eq": 1200 },
+//             "ppi": { "eq": 95 }
+//           }
+//         }
+//     },
+//     "on": "always",
+//     "publish": { "streams": [ "A.corners" ] }
+//   }
+//     ,
+ 
+
+  // ,
   //   {
-  //   "id": "forwardPointer_ToSurface",
-  //   "description": "A’s forward vector points to the surface of B.",
-  //   "entities": {         
-  //       "deviceA": {
-  //         // "name": "Mobile1",
-  //         "constraint": {
-  //           "type": "Mobile",
-  //           "width": { "eq": 1080 },
-  //           "height": { "eq": 2340 },
-  //           "ppi": { "eq": 395 }
-  //         }
-  //       },
-  //       "deviceB": {
-  //         // "name": "Desktop1",
-  //         "constraint": {
-  //           "type": "Desktop",
-  //           "width": { "eq": 1920 },
-  //           "height": { "eq": 1200 },
-  //           "ppi": { "eq": 95 }
-  //         }
-  //       }
-  //     },
-  //   "condition": { "operator": "AND", "primitives": [ "forwardPointerToSurface" ] },
-  //   "on": "true",
-  //   "publish": { "streams": [ "primitives.forwardPointerToSurface.measurement" ]
-  //   }
-  // },
-  //   {
-  //   "id": "generalProximity_AB",
-  //   "description": "Two devices are within a proximity threshold (no coplanarity requirement).",
-  //   "entities": {
-  //       "deviceB": {
-  //         // "name": "Mobile1",
-  //         "constraint": {
-  //           "type": "Mobile",
-  //           "width": { "eq": 1080 },
-  //           "height": { "eq": 2340 },
-  //           "ppi": { "eq": 395 }
-  //         }
-  //       },
-  //       "deviceA": {
-  //         // "name": "Tab1",
-  //         "constraint": {
-  //           "type": "Mobile",
-  //           "width": { "eq": 1920 },
-  //           "height": { "eq": 1200 },
-  //           "ppi": { "eq": 206 }
-  //         }
-  //       }
-  //   },
-  //   "condition": { "operator": "AND", "primitives": [ "proximate" ] },
-  //   "on": "exit",
-  //   "publish": { "streams": ["primitives.proximate.measurement"]}
-  // },
-  //   {
-  //   "id": "rightSideTouchLateralTilt",
-  //   "description": "A’s forward vector points to the Edge of B.",
-  //   "entities": {         
-  //       "deviceB": {
-  //         // "name": "Mobile1",
-  //         "constraint": {
-  //           "type": "Mobile",
-  //           "width": { "eq": 1080 },
-  //           "height": { "eq": 2340 },
-  //           "ppi": { "eq": 395 }
-  //         }
-  //       },
-  //       "deviceA": {
-  //         // "name": "Tab1",
-  //         "constraint": {
-  //           "type": "Mobile",
-  //           "width": { "eq": 1920 },
-  //           "height": { "eq": 1200 },
-  //           "ppi": { "eq": 206 }
-  //         }
-  //       }
-  //     },
-  //   "condition": { "operator": "AND", "primitives": [ "parallelEdge", "contactLateralEdge", "lateralTilt" ] },
-  //   "on": "true",
-  //   "publish": { "streams": [ "primitives.lateralTilt.measurement" ]
-  //   // ,
-  //         // "mapping": {
-  //         //   "toPixelA": ["primitives.forwardPointerToBottomEdge.measurement"], // custom ["A.corners"] // from stream
-  //         //   "toPixelB": ["primitives.forwardPointerToBottomEdge.measurement"] // custom
-  //         //   }
-  //       } 
-  // },
-  //     {
-  //   "id": "rightSideProximity",
-  //   "description": "A’s forward vector points to the Edge of B.",
-  //   "entities": {         
-  //       "deviceB": {
-  //         // "name": "Mobile1",
-  //         "constraint": {
-  //           "type": "Mobile",
-  //           "width": { "eq": 1080 },
-  //           "height": { "eq": 2340 },
-  //           "ppi": { "eq": 395 }
-  //         }
-  //       },
-  //       "deviceA": {
-  //         // "name": "Tab1",
-  //         "constraint": {
-  //           "type": "Mobile",
-  //           "width": { "eq": 1920 },
-  //           "height": { "eq": 1200 },
-  //           "ppi": { "eq": 206 }
-  //         }
-  //       }
-  //     },
-  //   "condition": { "operator": "AND", "primitives": [ "coLocalLevel", "parallelEdge", "proximateLateralEdge" ] },
-  //   "on": "true",
-  //   "publish": { "streams": [ "primitives.proximateLateralEdge.measurement", "A.rightEdge", "B.leftEdge" ]
-  //   // ,
-  //         // "mapping": {
-  //         //   "toPixelA": ["primitives.forwardPointerToBottomEdge.measurement"], // custom ["A.corners"] // from stream
-  //         //   "toPixelB": ["primitives.forwardPointerToBottomEdge.measurement"] // custom
-  //         //   }
-  //       } 
-  // },
-  //   {
-  //   "id": "lateralEdgeContact_SideBySide",
+  //   "id": "cornerContactTLtoTR",
   //   "description": "Two devices side-by-side in the same plane with touching lateral edges.",
   //       "entities": {
-  //       "deviceB": {
+  //       "deviceA": {
   //         // "name": "Mobile1",
   //         "constraint": {
   //           "type": "Mobile",
@@ -436,7 +329,7 @@
   //           "ppi": { "eq": 395 }
   //         }
   //       },
-  //       "deviceA": {
+  //       "deviceB": {
   //         // "name": "Tab1",
   //         "constraint": {
   //           "type": "Mobile",
@@ -446,9 +339,9 @@
   //         }
   //       }
   //   },
-  //   "condition": { "operator": "AND", "primitives": [ "parallelSurface", "contactLateralEdge" ] },
-  //   "on": "enter",
-  //   "publish": { "streams": [] }
+  //   "condition": { "operator": "AND", "primitives": [ "cornerContactTLtoTR" ] },
+  //   "on": "exit",
+  //   "publish": {  }
   // }
 
 // ,
