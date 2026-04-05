@@ -131,13 +131,23 @@ public class RegistrationHandler
                         observerBehaviour.enabled = false;
                         Debug.Log($"[WS] Vuforia tracking paused for tracker '{trackerName}' on device {deviceId}.");
                     }
-                    tracker.GetComponent<EdgeSpaceAllEdgesBands>().SetDeviceId(deviceId);
+                    tracker.GetComponent<EdgeSpaceAllEdgesBands>()?.SetDeviceId(deviceId);
                 }
-
+                if (trackerName == "Desktop2ImageTarget")
+                {
+                    // Disable the ImageTargetBehaviour to stop tracking.  
+                    var observerBehaviour = tracker.GetComponent<ImageTargetBehaviour>();
+                    if (observerBehaviour != null)
+                    {
+                        observerBehaviour.enabled = false;
+                        Debug.Log($"[WS] Vuforia tracking paused for tracker '{trackerName}' on device {deviceId}.");
+                    }
+                    tracker.GetComponent<EdgeSpaceAllEdgesBands>()?.SetDeviceId(deviceId);
+                }
                 if (verboseLogs)
                    Debug.Log($"[WS] Tracker {trackerName} attached to Device {deviceId}");
                 Utils.UpdateDeviceOutline(tracker.transform, deviceId);
-                //Utils.DisableDeviceOutline(tracker.transform);  
+                Utils.DisableDeviceOutline(tracker.transform);  
 
                 Scatter3DController _chart = GameObject.FindObjectOfType<Scatter3DController>();
                 if (trackerName == "TabMockTracker")

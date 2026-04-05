@@ -50,7 +50,7 @@ public class SpatialObserver : MonoBehaviour
         try
         {
             Debug.Log("Loading RuleSpecs from JSON...");
-            var specsTextAsset = Resources.Load<TextAsset>("JSON/SpatialObservableExample");
+            var specsTextAsset = Resources.Load<TextAsset>("JSON/Observable/wildfire");
             Debug.Log($"Loaded TextAsset: {specsTextAsset?.name}");
             if (specsTextAsset == null)
             {

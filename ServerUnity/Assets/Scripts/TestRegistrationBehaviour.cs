@@ -41,19 +41,89 @@ public class RegistrationBehaviorTester: MonoBehaviour
     {
         handler = new RegistrationHandler("testSession");
 
-        // 1) mock‐register a mobile device
-        TestMessage(@"
-        {
-          ""commandType"": ""register"",
-          ""payload"": {
-            ""deviceId"": ""mobile1-uuid"",
-            ""deviceType"": ""Mobile"",
-            ""screenWidth"": 1080,
-            ""screenHeight"": 2340,
-            ""ppi"": 395,
-            ""trackerName"": ""MobileIRTracker""
-          }
-        }");
+        // 1) gapminder
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""register"",
+        //  ""payload"": {
+        //    ""deviceId"": ""mobile1-uuid"",
+        //    ""deviceType"": ""Mobile"",
+        //    ""screenWidth"": 1080,
+        //    ""screenHeight"": 2340,
+        //    ""ppi"": 395,
+        //    ""trackerName"": ""MobileIRTracker""
+        //  }
+        //}");
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""register"",
+        //  ""payload"": {
+        //    ""deviceId"": ""tab1-uuid"",
+        //    ""deviceType"": ""Mobile"",
+        //    ""screenWidth"": 1920,
+        //    ""screenHeight"": 1200,
+        //    ""ppi"": 206,
+        //    ""trackerName"": ""TabIRTracker""
+        //  }
+        //}");
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""createTarget"",
+        //  ""payload"": {
+        //    ""deviceId"": ""mobile1-uuid""
+        //  }
+        //}");
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""createTarget"",
+        //  ""payload"": {
+        //    ""deviceId"": ""tab1-uuid""
+        //  }
+        //}");
+
+        // 2) seattle
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""register"",
+        //  ""payload"": {
+        //    ""deviceId"": ""desktop1-uuid"",
+        //    ""deviceType"": ""Desktop"",
+        //    ""screenWidth"": 3840,
+        //    ""screenHeight"": 2160,
+        //    ""ppi"": 140,
+        //    ""trackerName"": ""Desktop1ImageTarget""
+        //  }
+        //}");
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""register"",
+        //  ""payload"": {
+        //    ""deviceId"": ""mobile1-uuid"",
+        //    ""deviceType"": ""Mobile"",
+        //    ""screenWidth"": 1080,
+        //    ""screenHeight"": 2340,
+        //    ""ppi"": 395,
+        //    ""trackerName"": ""MobileIRTracker""
+        //  }
+        //}");
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""createTarget"",
+        //  ""payload"": {
+        //    ""deviceId"": ""desktop1-uuid"",
+        //    ""name"": ""Desktop1ImageTarget""
+        //  }
+        //}");
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""createTarget"",
+        //  ""payload"": {
+        //    ""deviceId"": ""mobile1-uuid""
+        //  }
+        //}");
+
+
+        //// 3) wildfire
         TestMessage(@"
         {
           ""commandType"": ""register"",
@@ -63,44 +133,105 @@ public class RegistrationBehaviorTester: MonoBehaviour
             ""screenWidth"": 1920,
             ""screenHeight"": 1200,
             ""ppi"": 206,
-            ""trackerName"": ""TabMockTracker""
+            ""trackerName"": ""TabIRTracker""
           }
         }");
-        //// 3) mock-createTarget for the mobile
-        //TestMessage(@"
-        //{
-        //  ""commandType"": ""createTarget"",
-        //  ""payload"": {
-        //    ""deviceId"": ""mobile-123""
-        //  }
-        //}");
-        //// 2) mock-register a desktop device
+        TestMessage(@"
+        {
+          ""commandType"": ""register"",
+          ""payload"": {
+            ""deviceId"": ""tab2-uuid"",
+            ""deviceType"": ""Mobile"",
+            ""screenWidth"": 1920,
+            ""screenHeight"": 1200,
+            ""ppi"": 206,
+            ""trackerName"": ""TabIRTracker2""
+          }
+        }");
         TestMessage(@"
         {
           ""commandType"": ""register"",
           ""payload"": {
             ""deviceId"": ""desktop1-uuid"",
             ""deviceType"": ""Desktop"",
-            ""screenWidth"": 1920,
-            ""screenHeight"": 1200,
-            ""ppi"": 95,
+            ""screenWidth"": 3840,
+            ""screenHeight"": 2160,
+            ""ppi"": 140,
             ""trackerName"": ""Desktop1ImageTarget""
           }
         }");
-
-
-
-        // 4) mock-createTarget for the desktop
+        TestMessage(@"
+        {
+          ""commandType"": ""register"",
+          ""payload"": {
+            ""deviceId"": ""desktop2-uuid"",
+            ""deviceType"": ""Desktop"",
+            ""screenWidth"": 3840,
+            ""screenHeight"": 2160,
+            ""ppi"": 80,
+            ""trackerName"": ""Desktop2ImageTarget""
+          }
+        }");
         TestMessage(@"
         {
           ""commandType"": ""createTarget"",
           ""payload"": {
-            ""deviceId"": ""desktop-456"",
-            ""name"": ""Desktop1ImageTarget"",
-            ""textureBase64"": ""desk/path.png"",
-            ""size"": 0.5
+            ""deviceId"": ""tab1-uuid""
           }
         }");
+        TestMessage(@"
+        {
+          ""commandType"": ""createTarget"",
+          ""payload"": {
+            ""deviceId"": ""tab2-uuid""
+          }
+        }");
+        TestMessage(@"
+        {
+          ""commandType"": ""createTarget"",
+          ""payload"": {
+            ""deviceId"": ""desktop1-uuid"",
+            ""name"": ""Desktop1ImageTarget""
+          }
+        }");
+        TestMessage(@"
+        {
+          ""commandType"": ""createTarget"",
+          ""payload"": {
+            ""deviceId"": ""desktop2-uuid"",
+            ""name"": ""Desktop2ImageTarget""
+          }
+        }");
+
+
+
+
+        //// misc
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""register"",
+        //  ""payload"": {
+        //    ""deviceId"": ""desktop1-uuid"",
+        //    ""deviceType"": ""Desktop"",
+        //    ""screenWidth"": 1920,
+        //    ""screenHeight"": 1200,
+        //    ""ppi"": 95,
+        //    ""trackerName"": ""Desktop1ImageTarget""
+        //  }
+        //}");
+
+
+        //// 4) mock-createTarget for the desktop
+        //TestMessage(@"
+        //{
+        //  ""commandType"": ""createTarget"",
+        //  ""payload"": {
+        //    ""deviceId"": ""desktop1-uuid"",
+        //    ""name"": ""Desktop1ImageTarget"",
+        //    ""textureBase64"": ""desk/path.png"",
+        //    ""size"": 0.5
+        //  }
+        //}");
     }
     public void TestMessage(string json)
     {

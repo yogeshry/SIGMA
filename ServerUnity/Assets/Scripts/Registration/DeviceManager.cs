@@ -1,6 +1,8 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -72,14 +74,11 @@ public static class DeviceManager
         }
     }
 
-    public static Device GetDevice(string sessionId)
+    public static Device GetDevice(string deviceId)
     {
-        if (devices.TryGetValue(sessionId, out var info))
-        {
-            return info;
-        }
-        Debug.LogWarning($"[RegMgr] No device found for session {sessionId}");
-        return null;
+        // Fix: Assign the result of FirstOrDefault to a variable and return it.  
+        var device = devices.FirstOrDefault(kvp => kvp.Value.deviceId == deviceId).Value;
+        return device;
     }
 
     public static List<Device> FindDevices(Constraint c)
@@ -144,24 +143,46 @@ public static class DeviceManager
     {
         resolvedA = null;
         resolvedB = null;
-        if (configString == null)
+
+        if (string.IsNullOrEmpty(configString))
         {
             Debug.LogError("Assign configAsset and deviceManager in Inspector.");
             return;
         }
+
         JObject config = JObject.Parse(configString);
-        resolvedA = ResolveSpec(config["deviceA"]);
-        resolvedB = ResolveSpec(config["deviceB"]);
+        var specA = config["deviceA"];
+        var specB = config["deviceB"];
+
+        int indexA = 0;
+        int indexB = 0;
+
+        // If equivalent constraints, pick sequential devices: 0,1,2...
+        if (TryGetConstraint(specA, out var cA) &&
+            TryGetConstraint(specB, out var cB) &&
+            ConstraintsEquivalent(cA, cB))
+        {
+            Debug.Log("[RegMgr] Device specs have equivalent constraints; selecting sequential devices.");
+            indexA = 0;
+            indexB = 1; // next device in same match set
+        }
+
+        resolvedA = ResolveSpec(specA, indexA);
+        resolvedB = ResolveSpec(specB, indexB);
+
         if (VerboseLogs)
-            Debug.Log($"Resolved {resolvedA} device(s) for deviceA and {resolvedB} for deviceB.");
+            Debug.Log($"[RegMgr] Resolved A={resolvedA?.deviceId} (idx {indexA}), B={resolvedB?.deviceId} (idx {indexB})");
     }
+
     /// <summary>
     /// Resolves a JToken spec into matching devices.
     /// </summary>
-    static Device ResolveSpec(JToken spec)
+    static Device ResolveSpec(JToken spec, int matchIndex = 0)
     {
         if (spec == null)
             return null;
+        // Defensive: negative index makes no sense
+        if (matchIndex < 0) matchIndex = 0;
 
         if (spec.Type == JTokenType.String)
         {
@@ -176,10 +197,17 @@ public static class DeviceManager
             {
                 Constraint c = constraintToken.ToObject<Constraint>();
                 var devices = FindDevices(c);
-                if (devices.Count > 0)
+                if (devices != null && devices.Count > 0)
                 {
-                    // Return the first matching device
-                    return devices[0];
+                    if (matchIndex < devices.Count)
+                        return devices[matchIndex];
+                    else
+                    {
+                        return devices[0];
+                    }
+
+                    Debug.LogWarning($"[RegMgr] Constraint matched {devices.Count} device(s) but matchIndex={matchIndex} is out of range.");
+                    return null;
                 }
                 else
                 {
@@ -189,6 +217,97 @@ public static class DeviceManager
         }
         return null;
     }
+    static bool TryGetConstraint(JToken spec, out Constraint c)
+    {
+        c = null;
+        if (spec == null || spec.Type != JTokenType.Object) return false;
+
+        var ct = spec["constraint"];
+        if (ct == null) return false;
+
+        c = ct.ToObject<Constraint>();
+        return c != null;
+    }
+
+    static bool ConstraintsEquivalent(Constraint a, Constraint b)
+    {
+        if (a == null || b == null) return false;
+
+        return string.Equals(a.type, b.type, StringComparison.OrdinalIgnoreCase)
+            && ComparatorEquivalent(a.width, b.width)
+            && ComparatorEquivalent(a.height, b.height)
+            && ComparatorEquivalent(a.ppi, b.ppi);
+    }
+
+    static bool ComparatorEquivalent(object x, object y)
+    {
+        if (x == null && y == null) return true;
+        if (x == null || y == null) return false;
+
+        var A = Canon(x);
+        var B = Canon(y);
+
+        if (A.Count != B.Count) return false;
+        for (int i = 0; i < A.Count; i++)
+            if (A[i].op != B[i].op || A[i].val != B[i].val) return false;
+
+        return true;
+    }
+
+    static List<(string op, double val)> Canon(object o)
+    {
+        var jo = o as JObject ?? JObject.FromObject(o);
+
+        // supports: { op:"lte", value:1200 }  
+        if (jo.TryGetValue("op", StringComparison.OrdinalIgnoreCase, out var opTok) &&
+            jo.TryGetValue("value", StringComparison.OrdinalIgnoreCase, out var valTok))
+        {
+            if (TryDouble(valTok, out var v))
+                return new List<(string op, double val)> { (NormOp(opTok.ToString()), v) };
+
+            return new List<(string op, double val)>(); // value is null/invalid -> treat as empty comparator  
+        }
+
+        // supports: { lte:1200, gte:10 } (skip null/non-numeric)  
+        var pairs = new List<(string op, double val)>();
+        foreach (var p in jo.Properties())
+            if (TryDouble(p.Value, out var v))
+                pairs.Add((NormOp(p.Name), v));
+
+        return pairs.OrderBy(p => p.op).ThenBy(p => p.val).ToList();
+    }
+
+    static bool TryDouble(JToken t, out double v)
+    {
+        v = 0;
+        if (t == null || t.Type == JTokenType.Null || t.Type == JTokenType.Undefined) return false;
+
+        if (t.Type == JTokenType.Integer || t.Type == JTokenType.Float)
+        {
+            v = t.Value<double>();
+            return true;
+        }
+
+        if (t.Type == JTokenType.String)
+            return double.TryParse(t.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out v);
+
+        return false;
+    }
+    static string NormOp(string op)
+    {
+        op = (op ?? "").Trim().ToLowerInvariant();
+        return op switch
+        {
+            "==" or "=" or "eq" => "eq",
+            "<=" or "lte" => "lte",
+            ">=" or "gte" => "gte",
+            "<" or "lt" => "lt",
+            ">" or "gt" => "gt",
+            _ => op
+        };
+    }
+
+
 
     ///// <summary>
     ///// Computes the pose of deviceB in the local frame of deviceA.

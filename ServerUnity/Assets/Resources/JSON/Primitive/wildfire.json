@@ -1,0 +1,96 @@
+[
+  {
+    "id": "contactLongitudinalEdge",
+    "description": "Distance between top edge of device A and bottom edge of device B",
+    "metric": "distance",
+    "refs": ["topEdge", "bottomEdge"],
+    "condition": {"eq": 0, "tolerance": 3},
+    "unit": "cm"
+  },
+  {
+    "id": "contactCornerBLToSurfaceB",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["bottomLeftCorner", "surface"],
+    "condition": {"eq": 0, "tolerance": 3},
+    "unit": "cm"
+  },
+  {
+    "id": "contact",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "position"],
+    "condition": {"lt": 2, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "proximate",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "position"],
+    "condition": {"lt": 40, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "proximate50",
+    "description": "Devices are in proximity zone",
+    "metric": "distance:downB",
+    "refs": ["position", "position"],
+    "condition": {"lt": 30, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "parallelSurface",
+    "description": "The display surfaces of two devices are parallel",
+    "metric": "angle",
+    "refs": ["upVector", "upVector"],
+    "condition": {"eq": 0, "tolerance": 10},
+    "unit": "deg"
+  },
+  {
+    "id": "parallelEdge",
+    "description": "Any pair of same edges of two devices are parallel",
+    "metric": "angle",
+    "refs": ["forwardVector", "forwardVector"],
+    "condition": {"eq": 0, "tolerance": 10},
+    "unit": "deg"
+  },
+  {
+    "id": "parallelLongitudinalEdge",
+    "description": "Any pair of same edges of two devices are parallel",
+    "metric": "angle",
+    "refs": ["rightVector", "rightVector"],
+    "condition": {"eq": 0, "tolerance": 10},
+    "unit": "deg"
+  },
+  {
+    "id": "parallelForwardRightEdge",
+    "description": "Any pair of same edges of two devices are perpendicular",
+    "metric": "angle",
+    "refs": ["forwardVector", "rightVector"],
+    "condition": {"eq": 0, "tolerance": 10},
+    "unit": "deg"
+  },
+  {
+    "id": "longitudinalTilt20P",
+    "description": "the lateral vector of devices are at 30 degree angle",
+    "metric": "angle",
+    "refs": ["forwardVector", "forwardVector"],
+    "condition": {"lt": 90, "gt": 20, "tolerance": 0},
+    "unit": "deg"
+  },
+  {
+    "id": "forwardPointerToSurface",
+    "description": "the forward vector of device A is pointing to the display surface of device B",
+    "metric": "projection:downB",
+    "refs": ["position", "surface"],
+    "unit": "cm"
+  },
+  {
+    "id": "perpendicularCornerBLPointerToSurface",
+    "description": "the forward vector of device A is pointing to the display surface of device B",
+    "metric": "projection:downB",
+    "refs": ["bottomLeftCorner", "surface"],
+    "unit": "cm"
+  }
+]

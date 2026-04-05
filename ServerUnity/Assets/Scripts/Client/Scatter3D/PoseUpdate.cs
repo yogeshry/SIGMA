@@ -17,11 +17,13 @@ public class Scatter3DPoseUpdate : MonoBehaviour
     [Tooltip("Log pose + parsed vectors")]
     public bool verboseLogs = true;
 
+    static readonly Regex CornersRegex = new(@"\(\s*([-+]?[\d\.eE\-]+)\s*,\s*([-+]?[\d\.eE\-]+)\s*,\s*([-+]?[\d\.eE\-]+)\s*\)", RegexOptions.Compiled);
+
     // --- Jitter guard thresholds ---
     // Apply rotation only if it changes more than this many degrees
-    private const float ROT_THRESHOLD_DEG = 10f;      // change to 10f if you want it stricter
+    private const float ROT_THRESHOLD_DEG = 5f;      // change to 10f if you want it stricter
     // Apply position only if it moves more than this many meters
-    private const float POS_THRESHOLD_M = 0.05f;     // 2cm
+    private const float POS_THRESHOLD_M = 0.015f;     // 2cm
 
     void Reset() { controller = FindObjectOfType<Scatter3DController>(); }
 
@@ -137,8 +139,7 @@ public class Scatter3DPoseUpdate : MonoBehaviour
         if (token.Type == JTokenType.String)
         {
             var s = (string)token;
-            var rx = new Regex(@"\(\s*([-+]?[\d\.eE\-]+)\s*,\s*([-+]?[\d\.eE\-]+)\s*,\s*([-+]?[\d\.eE\-]+)\s*\)");
-            var m = rx.Matches(s);
+            var m = CornersRegex.Matches(s);
             var list = new List<Vector3>(m.Count);
             foreach (Match mm in m)
             {

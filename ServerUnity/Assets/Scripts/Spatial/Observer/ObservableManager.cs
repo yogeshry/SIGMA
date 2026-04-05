@@ -58,12 +58,12 @@ public class ObservableManager
 
                 Debug.Log($"[Rule {spec.id}@{Time.time:F2}] State={evt.State} Streams=[{streamsDump}]");
 
-                string streamsJson = StreamSerializer.SerializeStreamsToJson(evt.Streams);
+                var streamsJObj = StreamSerializer.ToJObject(evt.Streams);
+                var spatialEvt = new SpatialEvent(spec.id, "spatial_observable", evt.State, streamsJObj);
 
-
-                // Optional: broadcast (unchanged)
-                WsHub.Broadcast(new { spec.id, type = "spatial_observable", state = evt.State, streams = streamsJson });
-                SpatialEventBus.Publish(new SpatialEvent(spec.id, "spatial_observable", evt.State, streamsJson));
+                // Broadcast to WebSocket clients (serializes lazily on first GetStreamsJson call)
+                WsHub.Broadcast(new { spec.id, type = "spatial_observable", state = evt.State, streams = spatialEvt.GetStreamsJson() });
+                SpatialEventBus.Publish(spatialEvt);
 
                 //// --- Handle rightSideProximity -> fade ---
                 //if (evt.State && string.Equals(spec.id, "rightSideProximity", StringComparison.Ordinal))

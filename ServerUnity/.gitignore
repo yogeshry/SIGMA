@@ -37,3 +37,7 @@ Logs/
 
 # Package files (avoid committing large .tgz files)
 *.tgz
+
+build1/
+build2/
+New folder_BackUpThisFolder_ButDontShipItWithYourGame/

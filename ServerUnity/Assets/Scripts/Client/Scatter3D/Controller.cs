@@ -49,7 +49,7 @@ public class Scatter3DController : MonoBehaviour
     void QueueSafeRebuild()
     {
         if (_rebuildQueued) return; _rebuildQueued = true;
-        EditorApplication.delayCall += () => { _rebuildQueued = false; if (this) SafeRebuild(); };
+        //EditorApplication.delayCall += () => { _rebuildQueued = false; if (this) SafeRebuild(); };
     }
 #endif
 
@@ -63,7 +63,7 @@ public class Scatter3DController : MonoBehaviour
     void OnDisable()
     {
         if (_data != null) _data.OnDataChanged -= SafeRebuild;
-        if (_sel != null) _sel.OnSelectionChanged -= SafeRebuild;
+        if (_sel != null) _sel.OnSelectionChanged -= Redraw;
     }
 
     void EnsureComponents()
@@ -78,7 +78,8 @@ public class Scatter3DController : MonoBehaviour
     void Wire()
     {
         _data.OnDataChanged -= SafeRebuild; _data.OnDataChanged += SafeRebuild;
-        _sel.OnSelectionChanged -= SafeRebuild; _sel.OnSelectionChanged += SafeRebuild;
+        // Selection changes only need a Redraw (not a full axis rebuild)
+        _sel.OnSelectionChanged -= Redraw; _sel.OnSelectionChanged += Redraw;
         _trails.Map = _points.Map;
     }
 
@@ -93,9 +94,8 @@ public class Scatter3DController : MonoBehaviour
     void SafeRebuild()
     {
         if (!this || !gameObject || !gameObject.scene.IsValid()) return;
-        ApplyAxisConfig();
         RecolorData();
-        BuildAxes();
+        BuildAxes(); // calls ApplyAxisConfig internally
         Redraw();
     }
 

@@ -58,7 +58,7 @@ public class LocalSpatialListener : MonoBehaviour
 
     // ===================== PERF KNOBS / STATE =====================
     [Header("Performance")]
-    [SerializeField] private float minUpdateInterval = 0.03f; // 33 ms
+    //[SerializeField] private float minUpdateInterval = 0.03f; // 33 ms
     [SerializeField] private float posEps = 0.01f;
     [SerializeField] private float tiltEpsDeg = 3f;
     [SerializeField] private float proxEps = 0.01f;
@@ -109,13 +109,11 @@ public class LocalSpatialListener : MonoBehaviour
                 ["id"] = e.id,
                 ["type"] = e.type,
                 ["state"] = e.state,
-                ["streams"] = e.streamsJson
+                ["streams"] = e.GetStreamsJObject()
             };
             if (e.id == "bboxPublishTab") poseApplier.TryApplyFromSpatial(root);
             if (e.id == "selectAlongTopEdge" || e.id == "moveAlongLeftEdge" || e.id == "moveAlongRightEdge" || e.id == "moveAlongBottomEdge") updateSeattleCards.HandleSpatialMessage(root);
         }
-
-        var cam = Camera.main;
 
         return;
         // ----- TILT -----
@@ -143,7 +141,7 @@ public class LocalSpatialListener : MonoBehaviour
 
                 if (edgesChanged || tiltChanged)
                 {
-                    DrawTiltVisual(a0, a1, b0, b1, speed, IsOn(e.state), cam);
+                    //DrawTiltVisual(a0, a1, b0, b1, speed, IsOn(e.state), cam);
                     RememberEdges(a0, a1, b0, b1, true);
                     _lastTiltDeg = t; _lastSpeed = speed; _haveLastTilt = true;
                 }
@@ -182,7 +180,7 @@ public class LocalSpatialListener : MonoBehaviour
 
                 if (edgesChanged || proxChanged)
                 {
-                    DrawProximityBridge(aR0, aR1, bL0, bL1, fade, IsOn(e.state), cam);
+                    //DrawProximityBridge(aR0, aR1, bL0, bL1, fade, IsOn(e.state), cam);
                     RememberEdges(aR0, aR1, bL0, bL1, false);
                     _lastProxFade = fade; _haveLastProx = true;
 

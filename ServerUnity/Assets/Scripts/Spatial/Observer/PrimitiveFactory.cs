@@ -102,7 +102,7 @@ public class PrimitiveFactory
 
     public PrimitiveFactory()
     {
-        var ta = Resources.Load<TextAsset>("JSON/Primitive/primitives");
+        var ta = Resources.Load<TextAsset>("JSON/Primitive/wildfire");
         var text = ta ? ta.text : "[]";
         var list = JsonConvert.DeserializeObject<List<PrimitiveSpec>>(text) ?? new List<PrimitiveSpec>();
         foreach (var s in list)
@@ -283,6 +283,9 @@ public class PrimitiveFactory
 
     private static IObservable<float> DistanceBuilder(BuildCtx ctx)
     {
+        if (ctx.B == null)
+            return Observable.Return(0f); // Fix: Return a default observable value of type float  
+
         var offset = BuildRawOffset(ctx).Publish().RefCount();
 
         if (!ctx.HasAxis)
@@ -311,6 +314,10 @@ public class PrimitiveFactory
         }
 
         // 2-refs: angle between direction vectors
+        if (ctx.B == null)
+        {
+            return Observable.Return(0f); // Fix: Return a default observable value of type float
+        }
         var u = RefStreamProvider.GetStream<Vector3>(ctx.A, r[0]);
         var v2 = RefStreamProvider.GetStream<Vector3>(ctx.B, r[1]);
         return u.CombineLatest(v2, (a, b) => Vector3.Angle(Norm(a), Norm(b))).Publish().RefCount();
@@ -543,27 +550,39 @@ public class PrimitiveFactory
         var typeA = RefStreamProvider.GetStreamGeometryType(r[0]);
         var typeB = RefStreamProvider.GetStreamGeometryType(r[1]);
 
-        if (typeA != GeometryType.LineSegment && typeB != GeometryType.LineSegment)
+        if (typeA == GeometryType.Point && typeB == GeometryType.Point)
         {
             var a = RefStreamProvider.GetStream<Vector3>(ctx.A, r[0]);
             var b = RefStreamProvider.GetStream<Vector3>(ctx.B, r[1]);
             return a.CombineLatest(b, (pa, pb) => pb - pa);
         }
 
-        if (typeA != GeometryType.LineSegment && typeB == GeometryType.LineSegment)
+        if (typeA == GeometryType.Point && typeB == GeometryType.LineSegment)
         {
             var a = RefStreamProvider.GetStream<Vector3>(ctx.A, r[0]);
             var b = RefStreamProvider.GetStream<(Vector3, Vector3)>(ctx.B, r[1]);
             return a.CombineLatest(b, (pt, seg) => SpatialHelper.PointToSegmentOffset(pt, seg.Item1, seg.Item2));
         }
 
-        if (typeA == GeometryType.LineSegment && typeB != GeometryType.LineSegment)
+        if (typeA == GeometryType.LineSegment && typeB == GeometryType.Point)
         {
             var a = RefStreamProvider.GetStream<(Vector3, Vector3)>(ctx.A, r[0]);
             var b = RefStreamProvider.GetStream<Vector3>(ctx.B, r[1]);
             return a.CombineLatest(b, (seg, pt) => SpatialHelper.PointToSegmentOffset(pt, seg.Item1, seg.Item2));
         }
+        if (typeA == GeometryType.Point && typeB == GeometryType.Polygon)
+        {
+            // A = point stream
+            var a = RefStreamProvider.GetStream<Vector3>(ctx.A, r[0]);
 
+            // B = corners stream (tr, tl, bl, br) like your other code
+            var b = RefStreamProvider.CornersStream(ctx.B)
+                .Select(c => new Vector3[] { c.tr, c.tl, c.bl, c.br }); // ordered loop
+
+            // point → polygon-region offset
+            return a.CombineLatest(b, (pt, poly) => SpatialHelper.PointToPolygonRegionOffset(pt, poly));
+
+        }
         var sa = RefStreamProvider.GetStream<(Vector3, Vector3)>(ctx.A, r[0]);
         var sb = RefStreamProvider.GetStream<(Vector3, Vector3)>(ctx.B, r[1]);
         return sa.CombineLatest(sb, (A, B) => SpatialHelper.NearestSegmentOffset(A.Item1, A.Item2, B.Item1, B.Item2));

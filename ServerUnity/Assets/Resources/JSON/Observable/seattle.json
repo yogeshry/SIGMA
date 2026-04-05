@@ -1,0 +1,141 @@
+[
+  {
+    "id": "moveAlongBottomEdge",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1080},
+          "height": {"eq": 2340},
+          "ppi": {"eq": 395}
+        }
+      },
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 140}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": [
+        "proximate40",
+        "belowBottomEdge",
+        "forwardPointerToBottomEdge"
+      ]
+    },
+    "on": "true",
+    "publish": {
+      "streams": ["primitives.forwardPointerToBottomEdge.measurement"]
+    }
+  },
+  {
+    "id": "moveAlongRightEdge",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1080},
+          "height": {"eq": 2340},
+          "ppi": {"eq": 395}
+        }
+      },
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 140}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": ["contactCornerTLToRightEdge", "perpendicularCornerTLPointerToRightEdge"]
+    },
+    "on": "true",
+    "publish": {
+      "streams": ["primitives.perpendicularCornerTLPointerToRightEdge.measurement"]
+    }
+  },
+  {
+    "id": "moveAlongLeftEdge",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1080},
+          "height": {"eq": 2340},
+          "ppi": {"eq": 395}
+        }
+      },
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 140}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": ["proximate", "leftLeftEdge", "forwardPointerToLeftEdge"]
+    },
+    "on": "true",
+    "publish": {
+      "streams": ["primitives.forwardPointerToLeftEdge.measurement"]
+    }
+  },
+  {
+    "id": "selectAlongTopEdge",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1080},
+          "height": {"eq": 2340},
+          "ppi": {"eq": 395}
+        }
+      },
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 140}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": ["touchTopEdge", "forwardPointerToTopEdge"]
+    },
+    "on": "true",
+    "publish": { "streams": ["primitives.forwardPointerToTopEdge.measurement"] }
+  },
+ 
+  {
+    "id": "bboxPublishDesktop",
+    "description": "Continuously publish the bounding box (corners) of device A.",
+    "entities": {
+      "deviceA": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 140}
+        }
+      }
+    },
+    "on": "always",
+    "publish": { "streams": ["A.corners"] }
+  }
+]

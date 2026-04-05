@@ -327,6 +327,9 @@ public sealed class RuleBuilder
             .Merge()
             .Scan(new Dictionary<string, object>(), (acc, sample) =>
             {
+                if (acc.TryGetValue(sample.Path, out var prev) &&
+                    ObjectEquality.Instance.Equals(prev, sample.Value))
+                    return acc; // no change, reuse same reference
                 var next = new Dictionary<string, object>(acc);
                 next[sample.Path] = sample.Value;
                 return next;
@@ -626,7 +629,7 @@ public sealed class RuleBuilder
     {
         public static readonly ObjectEquality Instance = new ObjectEquality();
 
-        private const float Eps = 0.007f;
+        private const float Eps = 0.003f;
 
         public new bool Equals(object x, object y)
         {

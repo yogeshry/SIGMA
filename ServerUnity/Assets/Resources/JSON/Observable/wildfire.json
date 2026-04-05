@@ -1,0 +1,209 @@
+[
+  {
+    "id": "forwardPointerToSurface1",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": "tab1-uuid",
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 80}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": ["proximate50", "forwardPointerToSurface"]
+    },
+    "on": "true",
+    "publish": {
+      "streams": [
+        "primitives.forwardPointerToSurface.measurement",
+        "primitives.proximate50.measurement"
+      ]
+    }
+  },
+  {
+    "id": "forwardPointerToSurface2",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": "tab2-uuid",
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 80}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": ["proximate50", "forwardPointerToSurface"]
+    },
+    "on": "true",
+    "publish": {
+      "streams": [
+        "primitives.forwardPointerToSurface.measurement",
+        "primitives.proximate50.measurement"
+      ]
+    }
+  },
+  {
+    "id": "cornerPointerToSurface",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": "tab1-uuid",
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 140}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": [
+        "contactCornerBLToSurfaceB",
+        "perpendicularCornerBLPointerToSurface"
+      ]
+    },
+    "on": "true",
+    "publish": {
+      "streams": [
+        "primitives.perpendicularCornerBLPointerToSurface.measurement"
+      ]
+    }
+  },
+  {
+    "id": "parallelEdgeTouchToSurface",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": "tab1-uuid",
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 140}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": ["contactCornerBLToSurfaceB", "parallelForwardRightEdge"]
+    },
+    "on": "enter",
+    "publish": {}
+  },
+  {
+    "id": "distantTabDesktop",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": "tab1-uuid",
+      "deviceB": {
+        "constraint": {
+          "type": "Desktop",
+          "width": {"eq": 3840},
+          "height": {"eq": 2160},
+          "ppi": {"eq": 140}
+        }
+      }
+    },
+    "condition": { "operator": "AND", "primitives": ["!proximate"] },
+    "on": "enter",
+    "publish": {}
+  },
+  {
+    "id": "vertical_stack",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1920},
+          "height": {"eq": 1200},
+          "ppi": {"eq": 206}
+        }
+      },
+      "deviceB": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1920},
+          "height": {"eq": 1200},
+          "ppi": {"eq": 206}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": ["parallelEdge", "parallelSurface", "contact"]
+    },
+    "on": "change",
+    "publish": {"streams": []}
+  },
+  {
+    "id": "longitudinal_stack",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1920},
+          "height": {"eq": 1200},
+          "ppi": {"eq": 206}
+        }
+      },
+      "deviceB": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1920},
+          "height": {"eq": 1200},
+          "ppi": {"eq": 206}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": ["parallelLongitudinalEdge", "contactLongitudinalEdge"]
+    },
+    "on": "change",
+    "publish": {"streams": []}
+  },
+  {
+    "id": "tilted_longitudinal_stack",
+    "description": "A’s forward vector points to the Edge of B.",
+    "entities": {
+      "deviceA": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1920},
+          "height": {"eq": 1200},
+          "ppi": {"eq": 206}
+        }
+      },
+      "deviceB": {
+        "constraint": {
+          "type": "Mobile",
+          "width": {"eq": 1920},
+          "height": {"eq": 1200},
+          "ppi": {"eq": 206}
+        }
+      }
+    },
+    "condition": {
+      "operator": "AND",
+      "primitives": [
+        "parallelLongitudinalEdge",
+        "longitudinalTilt20P",
+        "contactLongitudinalEdge"
+      ]
+    },
+    "on": "true",
+    "publish": {"streams": ["primitives.longitudinalTilt20P.measurement"]}
+  }
+]

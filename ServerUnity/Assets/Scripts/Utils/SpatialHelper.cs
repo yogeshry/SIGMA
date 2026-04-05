@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 public static class SpatialHelper
 {
@@ -104,4 +105,176 @@ public static class SpatialHelper
         var (v1, v2) = ShorterEdgeCornerVectorsToOther(a1, a2, b1, b2);
         return v1.sqrMagnitude >= v2.sqrMagnitude ? v1 : v2;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+    // ---------------------------------------------------------------------
+    // Point ↔ Polygon REGION (filled polygon on a plane)
+    // - If projection of p onto polygon plane lies inside polygon: distance is perpendicular.
+    // - Else: distance is to nearest polygon edge segment in 3D.
+    // Works best when polygon vertices are ordered and mostly planar.
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Newell normal for a polygon (robust for convex/concave if ordered).
+    /// Returns Vector3.zero if degenerate.
+    /// </summary>
+    public static Vector3 PolygonNormal(IList<Vector3> poly)
+    {
+        if (poly == null || poly.Count < 3) return Vector3.zero;
+
+        Vector3 n = Vector3.zero;
+        int count = poly.Count;
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 a = poly[i];
+            Vector3 b = poly[(i + 1) % count];
+
+            n.x += (a.y - b.y) * (a.z + b.z);
+            n.y += (a.z - b.z) * (a.x + b.x);
+            n.z += (a.x - b.x) * (a.y + b.y);
+        }
+
+        float mag = n.magnitude;
+        return mag > Mathf.Epsilon ? (n / mag) : Vector3.zero;
+    }
+
+    /// <summary>
+    /// Projects p onto plane (p0, n). Returns projected point and signed distance along n.
+    /// signedDist > 0 means p is in direction of n.
+    /// </summary>
+    private static Vector3 ProjectPointToPlane(Vector3 p, Vector3 p0, Vector3 n, out float signedDist)
+    {
+        signedDist = Vector3.Dot(n, p - p0);
+        return p - signedDist * n;
+    }
+
+    /// <summary>
+    /// Tests if a point on the polygon plane lies inside the polygon (convex or concave),
+    /// using a 2D ray-cast after choosing a stable projection axis.
+    /// Assumes 'ptOnPlane' is already on/near the plane.
+    /// </summary>
+    public static bool PointInPolygonOnPlane(Vector3 ptOnPlane, IList<Vector3> poly, Vector3 planeNormal)
+    {
+        if (poly == null || poly.Count < 3) return false;
+        if (planeNormal == Vector3.zero) return false;
+
+        // Choose projection to 2D by dropping the dominant normal axis (largest abs component).
+        Vector3 an = new Vector3(Mathf.Abs(planeNormal.x), Mathf.Abs(planeNormal.y), Mathf.Abs(planeNormal.z));
+        int drop; // 0=x,1=y,2=z
+        if (an.x >= an.y && an.x >= an.z) drop = 0;
+        else if (an.y >= an.x && an.y >= an.z) drop = 1;
+        else drop = 2;
+
+        // 2D ray cast: count crossings of horizontal ray to +infinity in x
+        bool inside = false;
+        int count = poly.Count;
+
+        Vector2 P = To2D(ptOnPlane, drop);
+
+        for (int i = 0, j = count - 1; i < count; j = i++)
+        {
+            Vector2 A = To2D(poly[i], drop);
+            Vector2 B = To2D(poly[j], drop);
+
+            // Check if edge (B->A) crosses the horizontal line at P.y
+            bool intersect = ((A.y > P.y) != (B.y > P.y)) &&
+                             (P.x < (B.x - A.x) * (P.y - A.y) / ((B.y - A.y) + 1e-20f) + A.x);
+            if (intersect) inside = !inside;
+        }
+
+        return inside;
+
+        static Vector2 To2D(Vector3 v, int dropAxis)
+        {
+            // dropAxis=0 -> use (y,z), dropAxis=1 -> (x,z), dropAxis=2 -> (x,y)
+            return dropAxis switch
+            {
+                0 => new Vector2(v.y, v.z),
+                1 => new Vector2(v.x, v.z),
+                _ => new Vector2(v.x, v.y),
+            };
+        }
+    }
+
+    /// <summary>
+    /// Returns the offset vector from p to the closest point on the polygon REGION (filled).
+    /// Offset = closestPointOnRegion - p. Distance is offset.magnitude.
+    ///
+    /// If the projection of p onto the polygon plane is inside the polygon, the closest point
+    /// is that projection (perpendicular to plane).
+    /// Otherwise, closest point lies on the nearest polygon edge segment in 3D.
+    ///
+    /// Outputs:
+    /// - closestPoint: closest point on the polygon region
+    /// - onFace: true if closest point is on the face interior (projection inside), false if on an edge
+    /// </summary>
+    public static Vector3 PointToPolygonRegionOffset(
+        Vector3 p,
+        IList<Vector3> polygon,
+        out Vector3 closestPoint,
+        out bool onFace)
+    {
+        closestPoint = p;
+        onFace = false;
+
+        if (polygon == null || polygon.Count < 3)
+            return Vector3.zero;
+
+        Vector3 n = PolygonNormal(polygon);
+        if (n == Vector3.zero)
+            return Vector3.zero;
+
+        Vector3 p0 = polygon[0];
+        Vector3 proj = ProjectPointToPlane(p, p0, n, out float signedDist);
+
+        // If projection lands inside the polygon, closest point is the projection.
+        if (PointInPolygonOnPlane(proj, polygon, n))
+        {
+            onFace = true;
+            closestPoint = proj;
+            return proj - p; // perpendicular offset
+        }
+
+        // Otherwise, find closest point on polygon boundary edges (segments) in 3D.
+        float bestSqr = float.PositiveInfinity;
+        Vector3 bestPoint = proj;
+
+        int count = polygon.Count;
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 a = polygon[i];
+            Vector3 b = polygon[(i + 1) % count];
+
+            // Closest point on segment to p is p + offset
+            Vector3 off = PointToSegmentOffset(p, a, b);
+            Vector3 cand = p + off;
+            float sq = off.sqrMagnitude;
+            if (sq < bestSqr)
+            {
+                bestSqr = sq;
+                bestPoint = cand;
+            }
+        }
+
+        onFace = false;
+        closestPoint = bestPoint;
+        return bestPoint - p;
+    }
+
+
+    public static Vector3 PointToPolygonRegionOffset(Vector3 p, IList<Vector3> polygon)
+    {
+        return PointToPolygonRegionOffset(p, polygon, out _, out _);
+    }
+
 }

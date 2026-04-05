@@ -38,12 +38,12 @@ public static class RefStreamProvider
         public DeviceStreams(
      Device d,
      // Epsilon parameters
-     float posEps = 0.007f,           // 5 mm
-     float cornerGateEps2 = 0.00005f,
-     float axisEps2 = 0.00005f,
-     float axesGateEps2 = 0.00005f,
-     float rotEpsDeg = 3f,            // 2°
-     float eulerEpsDeg = 3f,          // 2°
+     float posEps = 0.003f,           // 5 mm
+     float cornerGateEps2 = 0.000009f,
+     float axisEps2 = 0.00003f,
+     float axesGateEps2 = 0.000009f,
+     float rotEpsDeg = 1f,            // 2ï¿½
+     float eulerEpsDeg = 1f,          // 2ï¿½
                                       // Velocity/Acceleration parameters
      float velMinDt = 1e-4f,
      float velAlpha = 0f,
@@ -62,7 +62,7 @@ public static class RefStreamProvider
 
      // Throttle parameters (NEW)
      int throttleFrames = 0,          // 0 = no throttle, e.g., 2 = sample every 2 frames
-     float throttleSeconds = 0.1f)      // 0 = no throttle, e.g., 0.016f = ~60Hz
+     float throttleSeconds = 0.06f)      // 0 = no throttle, e.g., 0.016f = ~60Hz
         {
             Device = d ?? throw new ArgumentNullException(nameof(d));
             T = d.getTransform();
@@ -305,7 +305,8 @@ public static class RefStreamProvider
                 baseStream = baseStream.Sample(TimeSpan.FromSeconds(throttleSeconds));
             }
 
-            return baseStream;
+            // Share a single subscription across all chains (Pose, Axes, Corners, Euler, AngularVelocity)
+            return baseStream.Publish().RefCount();
         }
 
         private static bool NearlyEqualAxes(
@@ -429,6 +430,7 @@ public static class RefStreamProvider
             case "rightVector":
                 return AxisStream(device).Select(a => (T)(object)a.right);
 
+            case "surface":
             case "corners":
                 return CornersStream(device).Select(c => (T)(object)c);
 

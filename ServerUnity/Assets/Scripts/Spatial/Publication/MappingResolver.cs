@@ -58,7 +58,6 @@ public static class MappingResolver
         (Vector3 TL, Vector3 TR, Vector3 BL, Vector3 BR) cb,
         JToken mappingToken)
     {
-        var outSnap = new Dictionary<string, object>(snapshot);
         var map = new Dictionary<string, object>();
 
         try
@@ -74,9 +73,11 @@ public static class MappingResolver
             Debug.LogWarning($"[MappingResolver] Mapping error: {ex.Message}");
         }
 
-        if (map.Count > 0)
-            outSnap["mapping"] = map;
+        if (map.Count == 0)
+            return snapshot; // no mappings produced, reuse original
 
+        var outSnap = new Dictionary<string, object>(snapshot);
+        outSnap["mapping"] = map;
         return outSnap;
     }
 

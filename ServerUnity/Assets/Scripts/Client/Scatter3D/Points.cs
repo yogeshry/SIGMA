@@ -6,118 +6,152 @@ using static Scatter3DDataLoader;
 public class Scatter3DPoints : MonoBehaviour
 {
     [Header("Wiring")]
-    [SerializeField] private Scatter3DAxes axes;       // assign or auto-find
-    [SerializeField] private Material bubbleMaterial;  // URP/Unlit, Surface=Transparent (assign in Inspector)
+    [SerializeField] private Scatter3DAxes axes;
+    [SerializeField] private Material bubbleMaterial;
 
     [Header("Sizing")]
-    public bool scaleWithXLen = true;          // keep, but can disable on HL2
-    [Min(0.0005f)] public float bubbleScale = 2.2f; // global multiplier
-    [Min(0.001f)] public float minDiameter = 0.001f; // clamp so bubbles are visible on device (>= 1 cm)
+    public bool scaleWithXLen = true;
+    [Min(0.0005f)] public float bubbleScale = 2.2f;
+    [Min(0.001f)] public float minDiameter = 0.001f;
 
     [Header("Population Scale")]
     public bool populationLog10 = true;
 
-    // pool
-    readonly List<Transform> _pool = new();
-    Transform _pointRoot;
     Scatter3DSelection _sel;
+    bool _visible = true;
 
-    // ---- added caches for Redraw optimization (no logic change) ----
-    readonly List<ScatterPoint> _rows = new();        // reuse instead of allocating every Redraw
-    readonly List<Renderer> _poolRenderers = new();   // cache renderers to avoid GetComponent in loop
+    // GPU batched rendering — group by color, one DrawMeshInstanced per group
+    static Mesh _sphereMesh;
+    static MaterialPropertyBlock _mpb;
+    static int _BaseColorID, _ColorID;
+    const int BATCH_MAX = 1023;
+
+    // color -> list of matrices (reused each frame)
+    readonly Dictionary<Color, List<Matrix4x4>> _groups = new();
+    readonly List<Color> _groupKeys = new();
+
+    // filtered rows buffer
+    readonly List<ScatterPoint> _rows = new();
 
     void Reset() { axes = GetComponentInParent<Scatter3DAxes>(); }
     void Awake()
     {
         _sel = GetComponent<Scatter3DSelection>();
-        EnsureRoot();
         if (!axes) axes = GetComponentInParent<Scatter3DAxes>();
-
-        // Robust fallback if no material is assigned
         if (!bubbleMaterial) bubbleMaterial = Scatter3DUtil.SharedPointMat;
-
-        // Ensure transparent config (with ZWrite ON for HL2 visibility)
         Scatter3DUtil.ForceTransparent(bubbleMaterial, zWrite: true);
+        if (_mpb == null) _mpb = new MaterialPropertyBlock();
+        _BaseColorID = Shader.PropertyToID("_BaseColor");
+        _ColorID = Shader.PropertyToID("_Color");
+        EnsureSphereMesh();
     }
 
-    public void EnsureRoot()
+    static void EnsureSphereMesh()
     {
-        if (!_pointRoot)
-        {
-            var go = GameObject.Find($"{name}_Points") ?? new GameObject($"{name}_Points");
-            _pointRoot = go.transform;
-            _pointRoot.SetParent(transform, false);
-        }
+        if (_sphereMesh) return;
+        var tmp = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        _sphereMesh = tmp.GetComponent<MeshFilter>().sharedMesh;
+        if (Application.isPlaying) Destroy(tmp);
+        else DestroyImmediate(tmp);
     }
 
+    public void EnsureRoot() { }
     public void SetEnabled(bool enabledState) => enabled = enabledState;
-    public void SetVisible(bool visible) { EnsureRoot(); if (_pointRoot) _pointRoot.gameObject.SetActive(visible); }
+    public void SetVisible(bool visible) { _visible = visible; }
 
     public void Redraw(IReadOnlyList<ScatterPoint> data, int year)
     {
-        EnsureRoot();
-        if (!axes) { Debug.LogWarning("[Scatter3DPoints] Missing Scatter3DAxes."); return; }
+        if (!axes) return;
 
-        // filter by year (reuse list; same logic)
+        // filter by year
         _rows.Clear();
         for (int i = 0; i < data.Count; i++)
             if (data[i].year == year) _rows.Add(data[i]);
 
-        // pool (same behavior, also cache renderer alongside transform)
-        while (_pool.Count < _rows.Count)
-        {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.name = "pt";
-            go.transform.SetParent(_pointRoot, false);
+        // clear groups for reuse
+        foreach (var kv in _groups) kv.Value.Clear();
 
-            // Use shared material; color via MPB to avoid leaks
-            var rr = go.GetComponent<Renderer>();
-            rr.sharedMaterial = bubbleMaterial;
+        float xLenFactor = scaleWithXLen ? Mathf.Max(minDiameter, axes.xLen * bubbleScale) : 1f;
 
-            _pool.Add(go.transform);
-            _poolRenderers.Add(rr);
-        }
+        if (!_sel) _sel = GetComponent<Scatter3DSelection>();
+        bool any = _sel != null && _sel.fadeWhenAnySelected && _sel.AnySelected;
+        float fadedAlpha = _sel != null ? Mathf.Clamp01(_sel.fadeOthersAlpha / 1.2f) : 0.25f;
 
-        for (int i = _rows.Count; i < _pool.Count; i++)
-            _pool[i].gameObject.SetActive(false);
+        var basePos = axes.origin ? axes.origin.position : transform.position;
+        var normX = axes.axisX.normalized;
+        var normZ = axes.axisZ.normalized;
+        var normY = axes.axisY.normalized;
+        float xLen = axes.xLen, zLen = axes.zLen, yLen = axes.yLen;
+        Vector2 xDom = axes.xDomain, zDom = axes.zDomain, yDom = axes.yDomain;
+        ScaleType xSc = axes.xScale, zSc = axes.zScale, ySc = axes.yScale;
 
-        // precompute factor used inside loop (identical math)
-        float xLenFactor = 1f;
-        if (scaleWithXLen)
-            xLenFactor = Mathf.Max(minDiameter, axes.xLen * bubbleScale);
-
-        // place + style (same logic)
         for (int i = 0; i < _rows.Count; i++)
         {
             var p = _rows[i];
-            var tf = _pool[i];
-            tf.gameObject.SetActive(true);
 
-            tf.position = Map(p.x, p.z, p.y);
+            float nx = Normalize(p.x, xDom, xSc);
+            float nz = Normalize(p.z, zDom, zSc);
+            float ny = Normalize(p.y, yDom, ySc);
+            var pos = basePos + normX * (nx * xLen) + normZ * (nz * zLen) + normY * (ny * yLen);
 
-            // Later, when computing diameter for rendering:
-            float radius = p.size;
-            float diameter = radius * 2f;
+            float diameter = p.size * 2f;
+            if (scaleWithXLen) diameter *= xLenFactor;
+            diameter = Mathf.Max(minDiameter, diameter);
 
-            if (scaleWithXLen)
-                diameter *= xLenFactor;
-
-            tf.localScale = Vector3.one * diameter;
-
-            // color + fade via MPB
             var col = p.color;
-            bool any = _sel.fadeWhenAnySelected && _sel.AnySelected;
-            bool isSel = _sel.IsSelected(p.country);
-            if (any && !isSel)
-            {
-                col.a = Mathf.Clamp01(_sel.fadeOthersAlpha / 1.2f);
-            }
-            else col.a = 1f;
-            var bright = Scatter3DUtil.BoostColor(col, 1.2f, 1f); // tweak gains
+            col.a = (any && _sel != null && !_sel.IsSelected(p.country)) ? fadedAlpha : 1f;
+            col = Scatter3DUtil.BoostColor(col, 1.2f, 1f);
 
-            // use cached renderer (same result, faster)
-            Scatter3DUtil.ApplyColor(_poolRenderers[i], bright);
+            if (!_groups.TryGetValue(col, out var list))
+            {
+                list = new List<Matrix4x4>(64);
+                _groups[col] = list;
+            }
+            list.Add(Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * diameter));
         }
+    }
+
+    void LateUpdate()
+    {
+        if (!_visible || !bubbleMaterial) return;
+        EnsureSphereMesh();
+
+        foreach (var kv in _groups)
+        {
+            var matrices = kv.Value;
+            if (matrices.Count == 0) continue;
+
+            var col = kv.Key;
+            _mpb.SetColor(_BaseColorID, col);
+            _mpb.SetColor(_ColorID, col);
+
+            int offset = 0;
+            while (offset < matrices.Count)
+            {
+                int batch = Mathf.Min(BATCH_MAX, matrices.Count - offset);
+
+                // Build contiguous array for this batch
+                var batchArr = GetBatchArray(batch);
+                for (int i = 0; i < batch; i++)
+                    batchArr[i] = matrices[offset + i];
+
+                Graphics.DrawMeshInstanced(
+                    _sphereMesh, 0, bubbleMaterial,
+                    batchArr, batch, _mpb,
+                    UnityEngine.Rendering.ShadowCastingMode.Off, false);
+
+                offset += batch;
+            }
+        }
+    }
+
+    // reusable batch array to avoid per-frame allocs
+    static Matrix4x4[] _batchBuf;
+    static Matrix4x4[] GetBatchArray(int minSize)
+    {
+        if (_batchBuf == null || _batchBuf.Length < minSize)
+            _batchBuf = new Matrix4x4[Mathf.Max(BATCH_MAX, Mathf.NextPowerOfTwo(minSize))];
+        return _batchBuf;
     }
 
     public Vector3 Map(float x, float z, float y)
@@ -126,7 +160,6 @@ public class Scatter3DPoints : MonoBehaviour
         float nz = Normalize(z, axes.zDomain, axes.zScale);
         float ny = Normalize(y, axes.yDomain, axes.yScale);
 
-        // frame from axes
         var basePos = axes.origin ? axes.origin.position : transform.position;
         return basePos
              + axes.axisX.normalized * (nx * axes.xLen)
@@ -142,13 +175,13 @@ public class Scatter3DPoints : MonoBehaviour
             float la = Mathf.Log10(Mathf.Max(a, 1e-12f));
             float lb = Mathf.Log10(Mathf.Max(b, 1e-12f));
             float lv = Mathf.Log10(Mathf.Max(v, 1e-12f));
-            return Mathf.InverseLerp(la, lb, lv);  // same formula
+            return Mathf.InverseLerp(la, lb, lv);
         }
         else if (scale == ScaleType.Sqrt)
         {
             return Mathf.InverseLerp(Mathf.Sqrt(a), Mathf.Sqrt(b), Mathf.Sqrt(Mathf.Max(v, 0f)));
         }
-        else // linear
+        else
         {
             return Mathf.InverseLerp(a, b, v);
         }

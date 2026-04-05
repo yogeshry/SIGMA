@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;  // For UI Text
@@ -9,37 +9,34 @@ public class LogToUI : MonoBehaviour
     public TextMeshProUGUI registrationStatusText;
     [SerializeField] private int maxLines = 30;
 
-    private string logs = "";
+    private readonly Queue<string> _logLines = new Queue<string>();
+    private readonly System.Text.StringBuilder _sb = new System.Text.StringBuilder();
 
     void OnEnable()
     {
         Application.logMessageReceived += HandleLog;
-        DeviceManager.OnDevicesChanged += UpdateDeviceRegistrationStatus; // 🔔 subscribe to event
+        DeviceManager.OnDevicesChanged += UpdateDeviceRegistrationStatus;
     }
 
     void OnDisable()
     {
         Application.logMessageReceived -= HandleLog;
-        DeviceManager.OnDevicesChanged -= UpdateDeviceRegistrationStatus; // 🔔 subscribe to event
+        DeviceManager.OnDevicesChanged -= UpdateDeviceRegistrationStatus;
     }
 
     void HandleLog(string logString, string stackTrace, LogType type)
     {
-        if (true)
+        _logLines.Enqueue(logString);
+        while (_logLines.Count > maxLines)
+            _logLines.Dequeue();
+
+        if (logText != null)
         {
-            logs += logString + "\n";
-
-            // Limit number of lines (optional, keeps UI fast)
-            string[] lines = logs.Split('\n');
-            if (lines.Length > maxLines)
-            {
-                logs = string.Join("\n", lines, lines.Length - maxLines, maxLines);
-            }
-
-            if (logText != null)
-                logText.text = logs;
+            _sb.Clear();
+            foreach (var line in _logLines)
+                _sb.AppendLine(line);
+            logText.text = _sb.ToString();
         }
-
     }
 
     void UpdateDeviceRegistrationStatus()

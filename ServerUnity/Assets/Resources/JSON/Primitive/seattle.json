@@ -1,0 +1,144 @@
+[
+    {
+    "id": "contactCornerTLToRightEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["topLeftCorner", "rightEdge"],
+    "condition": {"eq": 0, "tolerance": 2},
+    "unit": "cm"
+  },
+    {
+    "id": "perpendicularCornerTLPointerToRightEdge",
+    "description": "the forward vector of device A is pointing to the display surface of device B",
+    "metric": "projection:downB",
+    "refs": ["topLeftCorner", "rightEdge"],
+    "unit": "cm"
+  },
+  {
+    "id": "proximate",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "position"],
+    "condition": {"lt": 50, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "proximate40",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "position"],
+    "condition": {"lt": 40, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "proximateLeftEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "leftEdge"],
+    "condition": {"lt": 10, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "proximateRightEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "rightEdge"],
+    "condition": {"lt": 10, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "proximateTopEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "topEdge"],
+    "condition": {"lt": 7, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "proximateBottomEdge",
+    "description": "Devices are in proximity zone",
+    "metric": "distance",
+    "refs": ["position", "bottomEdge"],
+    "condition": {"lt": 10, "tolerance": 0},
+    "unit": "cm"
+  },
+  {
+    "id": "touchTopEdge",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance",
+    "refs": ["topEdge", "topEdge"],
+    "condition": {"eq": 0, "tolerance": 1},
+    "unit": "cm"
+  },
+  {
+    "id": "belowBottomEdge",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance:forwardB",
+    "refs": ["position", "bottomEdge"],
+    "condition": {"gt": 3, "lt": 10, "tolerance": 3},
+    "unit": "cm"
+  },
+  {
+    "id": "rightRightEdge",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance:leftB",
+    "refs": ["position", "rightEdge"],
+    "condition": {"gt": 3, "lt": 10, "tolerance": 3},
+    "unit": "cm"
+  },
+  {
+    "id": "leftLeftEdge",
+    "description": "Vertical Distance between between  device A and device (Y up)",
+    "metric": "distance:rightB",
+    "refs": ["position", "leftEdge"],
+    "condition": {"gt": 3, "lt": 10, "tolerance": 3},
+    "unit": "cm"
+  },
+  {
+    "id": "forwardPointerToBottomEdge",
+    "description": "the forward vector of device A is pointing to the bottom edge of device B",
+    "metric": "projection:forwardA",
+    "refs": ["position", "bottomEdge"]
+  },
+  {
+    "id": "forwardPointerToRightEdge",
+    "description": "the forward vector of device A is pointing to the bottom edge of device B",
+    "metric": "projection:leftA",
+    "refs": ["position", "rightEdge"]
+  },
+  {
+    "id": "forwardPointerToLeftEdge",
+    "description": "the forward vector of device A is pointing to the bottom edge of device B",
+    "metric": "projection:rightA",
+    "refs": ["position", "leftEdge"]
+  },
+  {
+    "id": "forwardPointerToTopEdge",
+    "description": "the forward vector of device A is pointing to the bottom edge of device B",
+    "metric": "projection:forwardA",
+    "refs": ["position", "topEdge"]
+  },
+  {
+    "id": "forwardPointerToSurface",
+    "description": "the forward vector of device A is pointing to the display surface of device B",
+    "metric": "projection:forwardA",
+    "refs": ["position", "surface"],
+    "unit": "cm"
+  },
+  {
+    "id": "positional_shake",
+    "description": "the acceleration of device is greater than threshold",
+    "metric": "acceleration_rms",
+    "condition": {"gt": 300},
+    "params": {"halfLifeSec": 1},
+    "unit": "cm/s^2"
+  },
+  {
+    "id": "angular_shake",
+    "description": "the acceleration of device is greater than threshold",
+    "metric": "angular_velocity_rms",
+    "condition": {"gt": 60},
+    "params": {"halfLifeSec": 1},
+    "unit": "deg/s"
+  }
+]

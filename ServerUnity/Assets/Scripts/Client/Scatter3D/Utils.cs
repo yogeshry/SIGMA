@@ -12,10 +12,12 @@ public static class Scatter3DUtil
 
     static Material NewTransparentMatInternal(bool zWrite = false)
     {
-        // Prefer URP/Unlit. Avoid Shader.Find failures on device by also allowing Sprites/Default.
-        var sh = Shader.Find("Universal Render Pipeline/Unlit")
+        // Prefer custom instanced shader (supports per-instance _BaseColor for GPU instancing).
+        // Falls back through URP Particles/Unlit (also supports instanced color) then others.
+        var sh = Shader.Find("Custom/InstancedColorUnlit")
+                 ?? Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                 ?? Shader.Find("Universal Render Pipeline/Unlit")
                  ?? Shader.Find("Sprites/Default")
-                 ?? Shader.Find("Unlit/Color")
                  ?? Shader.Find("Standard");
 
         var m = new Material(sh)
@@ -137,7 +139,7 @@ public static class Scatter3DUtil
         if (Mathf.Approximately(lo, hi))
         {
             float baseVal = Mathf.Abs(lo);
-            float span = baseVal > 0f ? baseVal * 0.1f : 1f;   // 10% or ±1
+            float span = baseVal > 0f ? baseVal * 0.1f : 1f;   // 10% or ï¿½1
             lo -= span * 0.5f;
             hi += span * 0.5f;
         }
